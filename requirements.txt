@@ -2,9 +2,4 @@ flask
 flask-cors
 requests
 beautifulsoup4
-pytesseract
-Pillow
-pdf2image
-numpy
-scipy
 reportlab
