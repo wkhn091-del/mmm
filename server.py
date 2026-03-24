@@ -1316,8 +1316,160 @@ def trigger_improve(book_id):
     return jsonify({"status":"started"})
 
 
-# ═══════════════════════════════════════════════════
-#  SOURCE 7 — Chabad.org (ספרים חדשים + חסידות)
+@app.route("/api/export-pdf/<path:book_id>")
+def export_pdf(book_id):
+    """
+    מייצר PDF מעוצב יפה מהטקסט של הספר.
+    כולל: כותרת, מחבר, פרקים, גופן עברי מקצועי.
+    """
+    try:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import (SimpleDocTemplate, Paragraph,
+                                        Spacer, HRFlowable, PageBreak)
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        import io
+
+        # ── טען נתוני ספר ──
+        conn = get_db()
+        book = conn.execute("SELECT * FROM books WHERE id=?", (book_id,)).fetchone()
+        tr   = conn.execute("SELECT content, improved FROM book_text WHERE book_id=?", (book_id,)).fetchone()
+        conn.close()
+
+        if not book:
+            return jsonify({"error": "ספר לא נמצא"}), 404
+        if not tr:
+            return jsonify({"error": "אין טקסט לספר זה. הפעל OCR קודם."}), 404
+
+        title  = book["title"]  or book["he_title"] or f"ספר #{book_id}"
+        author = book["author"] or ""
+        year   = book["year"]   or ""
+        text   = tr["improved"] or tr["content"] or ""
+
+        # ── רשום גופן עברי ──
+        FONT_PATH      = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        FONT_PATH_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        pdfmetrics.registerFont(TTFont("Heb",     FONT_PATH))
+        pdfmetrics.registerFont(TTFont("HebBold", FONT_PATH_BOLD))
+
+        # ── סגנונות ──
+        BLUE  = colors.HexColor("#2563eb")
+        DARK  = colors.HexColor("#111827")
+        GRAY  = colors.HexColor("#6b7280")
+        LIGHT = colors.HexColor("#eff6ff")
+
+        s_title = ParagraphStyle("s_title",
+            fontName="HebBold", fontSize=26, alignment=TA_CENTER,
+            spaceAfter=8, leading=36, textColor=DARK, wordWrap="RTL")
+        s_author = ParagraphStyle("s_author",
+            fontName="Heb", fontSize=14, alignment=TA_CENTER,
+            spaceAfter=4, leading=22, textColor=GRAY, wordWrap="RTL")
+        s_year = ParagraphStyle("s_year",
+            fontName="Heb", fontSize=11, alignment=TA_CENTER,
+            spaceAfter=24, leading=18, textColor=GRAY, wordWrap="RTL")
+        s_heading = ParagraphStyle("s_heading",
+            fontName="HebBold", fontSize=15, alignment=TA_RIGHT,
+            spaceAfter=8, spaceBefore=20, leading=24,
+            textColor=BLUE, wordWrap="RTL")
+        s_sub = ParagraphStyle("s_sub",
+            fontName="HebBold", fontSize=13, alignment=TA_RIGHT,
+            spaceAfter=6, spaceBefore=12, leading=20,
+            textColor=DARK, wordWrap="RTL")
+        s_body = ParagraphStyle("s_body",
+            fontName="Heb", fontSize=12, alignment=TA_RIGHT,
+            spaceAfter=6, leading=22, textColor=DARK, wordWrap="RTL")
+        s_sep = ParagraphStyle("s_sep",
+            fontName="Heb", fontSize=10, alignment=TA_CENTER,
+            textColor=GRAY, spaceAfter=8, spaceBefore=8)
+
+        # ── בנה PDF ──
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buf, pagesize=A4,
+            rightMargin=2.8*cm, leftMargin=2.8*cm,
+            topMargin=2.5*cm,   bottomMargin=2.5*cm,
+            title=title, author=author, subject="ספרייה יהודית — גנזך"
+        )
+
+        story = []
+
+        # ── עמוד שער ──
+        story.append(Spacer(1, 3*cm))
+        story.append(Paragraph(title, s_title))
+        story.append(HRFlowable(width="60%", thickness=2,
+                                color=BLUE, hAlign="CENTER"))
+        story.append(Spacer(1, 12))
+        if author:
+            story.append(Paragraph(author, s_author))
+        if year:
+            story.append(Paragraph(f"שנת {year}", s_year))
+        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph("גנזך — ספרייה יהודית דיגיטלית", s_year))
+        story.append(PageBreak())
+
+        # ── גוף הספר ──
+        paragraphs = re.split(r'\n{2,}|---', text)
+
+        for para in paragraphs:
+            lines = [l.strip() for l in para.strip().split('\n') if l.strip()]
+            if not lines:
+                story.append(Spacer(1, 6))
+                continue
+
+            for line in lines:
+                if not line:
+                    continue
+
+                # זיהוי סוג שורה
+                is_chapter  = re.match(r'^(פרק|חלק|ספר|שער|הלכות|סימן)\s', line)
+                is_section  = re.match(r'^(סעיף|דין|שאלה|תשובה|אות)\s', line)
+                is_sep      = re.match(r'^[✦•*—\-]{3,}', line)
+                is_short    = len(line) < 40 and not line.endswith('.')
+
+                if is_sep:
+                    story.append(HRFlowable(width="40%", thickness=0.5,
+                                           color=GRAY, hAlign="CENTER",
+                                           spaceBefore=6, spaceAfter=6))
+                elif is_chapter or (is_short and is_chapter):
+                    story.append(Paragraph(line, s_heading))
+                elif is_section:
+                    story.append(Paragraph(line, s_sub))
+                else:
+                    # נקה תווים בעייתיים לreportlab
+                    safe_line = (line
+                        .replace('&', '&amp;')
+                        .replace('<', '&lt;')
+                        .replace('>', '&gt;'))
+                    story.append(Paragraph(safe_line, s_body))
+
+        doc.build(story)
+        pdf_bytes = buf.getvalue()
+
+        # שם קובץ בטוח
+        safe_name = re.sub(r'[^\u05D0-\u05EAa-zA-Z0-9\s]', '', title)
+        safe_name = safe_name.strip()[:60] or "book"
+
+        return Response(
+            pdf_bytes,
+            content_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{safe_name}.pdf"',
+                "Content-Length": len(pdf_bytes),
+            }
+        )
+
+    except ImportError:
+        return jsonify({"error": "reportlab not installed"}), 500
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+ (ספרים חדשים + חסידות)
 #  ספריה ענקית — תניא, רמב"ם יומי, היום יום,
 #  ליקוטי שיחות, ספרי הרב שניאורסון ועוד
 # ═══════════════════════════════════════════════════
