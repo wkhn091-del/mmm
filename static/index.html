@@ -191,6 +191,109 @@ main{grid-area:main;overflow-y:auto;padding:26px 28px 60px}
   .treader{padding:20px}
   .treader-content{font-size:16px}
 }
+
+/* ── BOOK FLIP VIEWER ──────────────────────────────── */
+.flip-container{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  background:#2a2a3a;position:relative;overflow:hidden;
+  user-select:none;
+}
+.flip-page{
+  position:absolute;
+  width:min(520px,85vw);height:min(740px,85vh);
+  background:#fffef8;
+  border-radius:4px 12px 12px 4px;
+  box-shadow:4px 4px 20px rgba(0,0,0,.5),-2px 0 8px rgba(0,0,0,.3);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .3s ease;
+}
+.flip-page.leaving-right{
+  transform:translateX(110%) rotateY(-15deg);
+  opacity:0;
+}
+.flip-page.leaving-left{
+  transform:translateX(-110%) rotateY(15deg);
+  opacity:0;
+}
+.flip-page.entering-right{
+  transform:translateX(110%);
+  opacity:0;
+}
+.flip-page.entering-left{
+  transform:translateX(-110%);
+  opacity:0;
+}
+
+.flip-page-header{
+  background:linear-gradient(135deg,#1e3a5f,#2563eb);
+  padding:10px 18px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.flip-book-title{
+  font-family:'Noto Serif Hebrew',serif;
+  font-size:13px;color:rgba(255,255,255,.85);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:300px;
+}
+.flip-page-num{
+  font-size:12px;color:rgba(255,255,255,.6);
+  flex-shrink:0;
+}
+
+.flip-page-content{
+  flex:1;overflow:hidden;
+  font-family:'Noto Serif Hebrew',serif;
+  font-size:15px;line-height:2;
+  color:#1a1a2e;
+  padding:24px 28px;
+  direction:rtl;text-align:right;
+  white-space:pre-wrap;word-wrap:break-word;
+}
+
+.flip-page-footer{
+  padding:8px 18px;
+  border-top:1px solid #e8e4d8;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;background:#faf9f5;
+}
+.flip-dots{display:flex;gap:6px;align-items:center}
+.flip-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#d0ccc0;cursor:pointer;transition:all .2s;
+}
+.flip-dot.active{background:var(--blue);transform:scale(1.3)}
+
+/* nav arrows */
+.flip-arrow{
+  position:absolute;
+  top:50%;transform:translateY(-50%);
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(255,255,255,.15);
+  border:2px solid rgba(255,255,255,.3);
+  color:rgba(255,255,255,.8);
+  font-size:20px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;z-index:10;
+  backdrop-filter:blur(4px);
+}
+.flip-arrow:hover{background:rgba(255,255,255,.3);color:#fff}
+.flip-arrow.left{left:16px}
+.flip-arrow.right{right:16px}
+.flip-arrow:disabled{opacity:.2;cursor:default}
+
+/* progress bar */
+.flip-progress{
+  position:absolute;bottom:0;left:0;right:0;
+  height:3px;background:rgba(255,255,255,.1);
+}
+.flip-progress-fill{
+  height:100%;background:var(--blue);
+  transition:width .3s ease;
+}
+
 </style>
 </head>
 <body>
@@ -297,6 +400,7 @@ main{grid-area:main;overflow-y:auto;padding:26px 28px 60px}
     <div class="vtabs" id="vtabs">
       <button class="vtab on" id="vtab-pdf" onclick="switchTab('pdf')">📄 קריאת PDF</button>
       <button class="vtab" id="vtab-text" onclick="switchTab('text')">📝 טקסט קריא</button>
+      <button class="vtab" id="vtab-flip" onclick="switchTab('flip')">📖 דפדוף ספר</button>
     </div>
     <div class="vbody" id="vbody">
       <iframe id="vframe" src=""></iframe>
@@ -498,29 +602,31 @@ async function openBook(id,title,source,preferTab){
   S.bid=id;S.btitle=title;S.bsource=source;
   $('vtitle').textContent=title;
 
-  // Fetch viewer info
-  const info=await fetch(`/api/viewer/${encodeURIComponent(id)}`).then(r=>r.json());
+  const [info, bdata] = await Promise.all([
+    fetch(`/api/viewer/${encodeURIComponent(id)}`).then(r=>r.json()).catch(()=>({})),
+    fetch(`/api/book/${encodeURIComponent(id)}`).then(r=>r.json()).catch(()=>({})),
+  ]);
+  const hasText = !!(bdata.text);
 
-  // Check if text available
-  const bdata=await fetch(`/api/book/${encodeURIComponent(id)}`).then(r=>r.json());
-  const hasText=!!(bdata.text);
+  // טאבים
+  const txttab  = $('vtab-text');
+  const fliptab = $('vtab-flip');
+  txttab.style.display  = (source==='hebrewbooks' || hasText) ? '' : 'none';
+  fliptab.style.display = hasText ? '' : 'none';
 
-  // Show/hide tabs
-  const pdftab=$('vtab-pdf');
-  const txttab=$('vtab-text');
-  txttab.style.display = (hasText||source==='sefaria') ? '' : 'none';
-
-  // Download/new tab buttons
-  if(info.type==='sefaria'){
-    $('vDlBtn').style.display='none';
-    $('vNewBtn').onclick=()=>window.open(info.url,'_blank');
-  } else {
+  // כפתורי topbar
+  if(source==='hebrewbooks'){
     $('vDlBtn').style.display='';
-    $('vNewBtn').onclick=()=>window.open(info.url,'_blank');
+    $('vDlBtn').onclick=()=>window.open(`https://hebrewbooks.org/pdfs/${id.replace('hb-','')}.pdf`,'_blank');
+    $('vNewBtn').onclick=()=>window.open(info.url||'#','_blank');
+  } else {
+    $('vDlBtn').style.display='none';
+    $('vNewBtn').onclick=()=>window.open(info.url||bdata.url||'#','_blank');
   }
 
-  // Decide which tab to open
-  const tab = (preferTab==='text'&&hasText) ? 'text' : 'pdf';
+  if(!info.url && bdata.url) info.url = bdata.url;
+
+  const tab = (preferTab==='text') ? 'text' : 'pdf';
   switchTab(tab, info, bdata.text, title);
 
   $('vov').classList.add('open');
@@ -533,18 +639,77 @@ function switchTab(tab, info, text, title){
   $(`vtab-${tab}`)&&$(`vtab-${tab}`).classList.add('on');
 
   if(tab==='pdf'){
-    let url='';
-    if(S.bsource==='sefaria'){
-      url=`https://www.sefaria.org/${encodeURIComponent(S.btitle)}`;
-    } else if(S.bsource==='wikisource'||S.bsource==='benyehuda'||S.bsource==='mamre'||S.bsource==='daat'){
-      url = info ? info.url : '#';
-    } else {
-      const num=S.bid.replace('hb-','');
-      url=`https://hebrewbooks.org/pdfpager.aspx?req=${num}`;
+    const src = S.bsource;
+
+    // HebrewBooks — PDF מלא
+    if(src==='hebrewbooks'){
+      const num = S.bid.replace('hb-','');
+      const url = `https://hebrewbooks.org/pdfpager.aspx?req=${num}`;
+      $('vbody').innerHTML=`<iframe id="vframe" src="${url}" allowfullscreen></iframe>`;
+      return;
     }
-    $('vbody').innerHTML=`<iframe id="vframe" src="${url}" allowfullscreen></iframe>`;
+
+    // כל שאר המקורות — iframe לא עובד, פתח בחלון חדש
+    let url='';
+    if(src==='sefaria'){
+      url=`https://www.sefaria.org/${encodeURIComponent(S.btitle)}`;
+    } else if(src==='wikisource'){
+      // קח URL מהDB
+      url = info ? info.url : `https://he.wikisource.org/wiki/${encodeURIComponent(S.btitle)}`;
+    } else if(src==='benyehuda'){
+      url = info ? info.url : '#';
+    } else if(src==='mamre'){
+      url = info ? info.url : 'https://www.mechon-mamre.org';
+    } else if(src==='daat'){
+      url = info ? info.url : 'https://www.daat.ac.il';
+    } else if(src==='chabad'){
+      url = info ? info.url : 'https://www.chabad.org';
+    } else if(src==='archive'){
+      const iid = S.bid.replace('ia-','');
+      url = `https://archive.org/details/${iid}`;
+    } else if(src==='alhatorah'){
+      url = info ? info.url : 'https://alhatorah.org';
+    } else if(src==='opensiddur'){
+      url = info ? info.url : 'https://opensiddur.org';
+    } else if(src==='nli'){
+      url = info ? info.url : 'https://www.nli.org.il';
+    }
+
+    if(url && url !== '#'){
+      // הצג כפתור פתיחה ידידותי במקום iframe שבור
+      $('vbody').innerHTML=`
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+          height:100%;gap:16px;padding:40px;text-align:center">
+          <div style="font-size:52px">📖</div>
+          <div style="font-family:'Noto Serif Hebrew',serif;font-size:20px;font-weight:700;color:var(--text)">
+            ${esc(S.btitle)}
+          </div>
+          <div style="font-size:14px;color:var(--text3);max-width:400px">
+            ספר זה שמור ב-<strong>${esc(src)}</strong>.<br>
+            לחץ לקריאה מלאה באתר המקורי.
+          </div>
+          <a href="${url}" target="_blank" style="
+            display:inline-flex;align-items:center;gap:8px;
+            padding:12px 28px;border-radius:10px;
+            background:var(--blue);color:#fff;
+            font-family:'Heebo',sans-serif;font-size:15px;font-weight:600;
+            text-decoration:none;transition:opacity .15s;
+          " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            ↗ פתח לקריאה מלאה
+          </a>
+          <div style="font-size:12px;color:var(--text4)">${url}</div>
+        </div>`;
+    } else {
+      $('vbody').innerHTML=`
+        <div style="padding:60px;text-align:center;color:var(--text3)">
+          <div style="font-size:40px;margin-bottom:12px">😔</div>
+          <div>לא נמצא קישור לספר זה</div>
+          <div style="font-size:13px;margin-top:8px">נסה את טאב "📝 טקסט קריא"</div>
+        </div>`;
+    }
+  } else if(tab==='flip'){
+    fetchAndShowFlip(S.bid);
   } else {
-    // Text reader — fetch fresh from server
     fetchAndShowText(S.bid);
   }
 }
@@ -667,6 +832,8 @@ function renderTextReader(text, hasImproved, bid){
         : `<button class="ocr-trigger" onclick="triggerImprove('${bid}',this)">✨ שפר עם Claude AI</button>`
       }
       <span style="color:var(--border2)">|</span>
+      <button class="fsize-btn" style="background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600;padding:4px 14px" onclick="exportPDF('${bid}')">📥 הורד PDF מעוצב</button>
+      <span style="color:var(--border2)">|</span>
       <span style="font-size:12px;color:var(--green)">✓ טקסט זמין</span>
     </div>
     <div class="treader" id="treader">
@@ -691,6 +858,34 @@ function closeV(){
   $('vov').classList.remove('open');
   $('vbody').innerHTML='<iframe id="vframe" src=""></iframe>';
   document.body.style.overflow='';
+}
+
+async function exportPDF(bid){
+  // Show loading on button
+  const btn = event && event.target;
+  const orig = btn ? btn.textContent : '';
+  if(btn){ btn.textContent='⏳ מייצר PDF...'; btn.disabled=true; }
+
+  try{
+    const resp = await fetch(`/api/export-pdf/${encodeURIComponent(bid)}`);
+    if(!resp.ok){
+      const err = await resp.json().catch(()=>({error:'שגיאה'}));
+      alert('שגיאה: ' + (err.error||'לא ניתן ליצור PDF'));
+      return;
+    }
+    // Download the PDF
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = (S.btitle||'book') + '.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e){
+    alert('שגיאה ביצירת PDF: ' + e.message);
+  } finally {
+    if(btn){ btn.textContent=orig||'📥 הורד PDF מעוצב'; btn.disabled=false; }
+  }
 }
 
 async function triggerImprove(bid, btn){
@@ -733,6 +928,166 @@ $('q').addEventListener('keydown',e=>{
   if(e.key==='Enter'){clearTimeout(_st);S.q=e.target.value.trim();S.page=1;loadSearch();}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeV();});
+
+
+// ══ BOOK FLIP VIEWER ════════════════════════════════
+const FLIP = {
+  pages: [],      // מערך עמודים (מחרוזות טקסט)
+  cur: 0,         // עמוד נוכחי
+  title: '',
+  touchStartX: 0,
+  touchStartY: 0,
+  animating: false,
+};
+
+const CHARS_PER_PAGE = 900; // תווים לעמוד
+
+function splitToPages(text, title){
+  // חלק לפסקאות ואז לעמודים
+  const paras = text.split(/\n{2,}/).filter(p=>p.trim());
+  const pages = [];
+  let current = '';
+
+  for(const para of paras){
+    if(current.length + para.length > CHARS_PER_PAGE && current.length > 0){
+      pages.push(current.trim());
+      current = para + '\n\n';
+    } else {
+      current += para + '\n\n';
+    }
+  }
+  if(current.trim()) pages.push(current.trim());
+  return pages.length ? pages : [text.slice(0,CHARS_PER_PAGE)];
+}
+
+async function fetchAndShowFlip(bid){
+  $('vbody').innerHTML='<div class="loader" style="height:100%"><div class="spin"></div><div>טוען ספר...</div></div>';
+
+  try{
+    const d = await fetch(`/api/book/${encodeURIComponent(bid)}`).then(r=>r.json());
+    if(!d.text){
+      // אין טקסט — הפעל OCR אוטומטית
+      fetchAndShowText(bid);
+      return;
+    }
+
+    FLIP.pages = splitToPages(d.text, d.title||d.he_title||bid);
+    FLIP.cur   = 0;
+    FLIP.title = d.title || d.he_title || 'ספר';
+    renderFlipPage(0, null);
+
+  } catch(e){
+    $('vbody').innerHTML='<div style="padding:40px;text-align:center;color:var(--red)">שגיאה בטעינת ספר</div>';
+  }
+}
+
+function renderFlipPage(pageIdx, direction){
+  if(FLIP.animating) return;
+  if(pageIdx < 0 || pageIdx >= FLIP.pages.length) return;
+
+  const total   = FLIP.pages.length;
+  const pct     = ((pageIdx+1)/total*100).toFixed(1);
+  const text    = FLIP.pages[pageIdx];
+
+  const html = `
+    <div class="flip-container" id="flipCont"
+      ontouchstart="flipTouchStart(event)"
+      ontouchend="flipTouchEnd(event)">
+
+      <!-- חץ שמאל = דף הבא (עברית — מימין לשמאל) -->
+      <button class="flip-arrow left" onclick="flipPage(1)" ${pageIdx>=total-1?'disabled':''} title="עמוד הבא">›</button>
+
+      <div class="flip-page" id="flipPage">
+        <div class="flip-page-header">
+          <span class="flip-book-title">${esc(FLIP.title)}</span>
+          <span class="flip-page-num">${pageIdx+1} / ${total}</span>
+        </div>
+        <div class="flip-page-content" id="flipContent">${esc(text).replace(/\n/g,'<br>')}</div>
+        <div class="flip-page-footer">
+          <div class="flip-dots">
+            ${Array.from({length:Math.min(total,9)},(_,i)=>{
+              const dotIdx = Math.floor(i * total/Math.min(total,9));
+              return `<div class="flip-dot ${Math.abs(dotIdx-pageIdx)<total/9?'active':''}" onclick="flipGoTo(${dotIdx})"></div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- חץ ימין = דף הקודם -->
+      <button class="flip-arrow right" onclick="flipPage(-1)" ${pageIdx<=0?'disabled':''} title="עמוד קודם">‹</button>
+
+      <div class="flip-progress">
+        <div class="flip-progress-fill" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+
+  if(!direction){
+    $('vbody').innerHTML = html;
+    FLIP.cur = pageIdx;
+    return;
+  }
+
+  // אנימציית דפדוף
+  FLIP.animating = true;
+  const vbody = $('vbody');
+  const oldPage = vbody.querySelector('.flip-page');
+
+  // Animate out
+  if(oldPage){
+    oldPage.classList.add(direction===1 ? 'leaving-left' : 'leaving-right');
+  }
+
+  setTimeout(()=>{
+    vbody.innerHTML = html;
+    FLIP.cur = pageIdx;
+    const newPage = vbody.querySelector('.flip-page');
+    if(newPage){
+      newPage.classList.add(direction===1 ? 'entering-right' : 'entering-left');
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
+          newPage.classList.remove('entering-right','entering-left');
+          FLIP.animating = false;
+        });
+      });
+    } else {
+      FLIP.animating = false;
+    }
+  }, 250);
+}
+
+function flipPage(dir){
+  // dir=1 → הבא, dir=-1 → הקודם
+  const next = FLIP.cur + dir;
+  if(next < 0 || next >= FLIP.pages.length) return;
+  renderFlipPage(next, dir);
+}
+
+function flipGoTo(idx){
+  const dir = idx > FLIP.cur ? 1 : -1;
+  renderFlipPage(idx, dir);
+}
+
+// ── Swipe / Touch support ──
+function flipTouchStart(e){
+  FLIP.touchStartX = e.touches[0].clientX;
+  FLIP.touchStartY = e.touches[0].clientY;
+}
+function flipTouchEnd(e){
+  const dx = e.changedTouches[0].clientX - FLIP.touchStartX;
+  const dy = e.changedTouches[0].clientY - FLIP.touchStartY;
+  if(Math.abs(dx) < Math.abs(dy) || Math.abs(dx) < 40) return;
+  // עברית: החלקה שמאלה = הבא, ימינה = קודם
+  flipPage(dx < 0 ? 1 : -1);
+}
+
+// ── Keyboard ──
+document.addEventListener('keydown', e=>{
+  if(!$('vov')?.classList.contains('open')) return;
+  if(S.tab !== 'flip') return;
+  if(e.key==='ArrowLeft')  flipPage(1);
+  if(e.key==='ArrowRight') flipPage(-1);
+});
+
 
 // ══ BOOT ════════════════════════════════════════════
 refreshStats();
