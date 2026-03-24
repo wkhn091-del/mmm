@@ -6,673 +6,737 @@
 <title>גנזך • ספרייה יהודית</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Hebrew:wght@400;600;700;900&family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ═══════ TOKENS ═══════ */
 :root{
-  --white:     #ffffff;
-  --bg:        #f5f6fa;
-  --bg2:       #eef0f7;
-  --surface:   #ffffff;
-  --border:    #e2e5ef;
-  --border2:   #d0d4e8;
-
-  --blue:      #2563eb;
-  --blue-lt:   #eff6ff;
-  --blue-mid:  #3b82f6;
-  --indigo:    #4f46e5;
-
-  --text:      #111827;
-  --text2:     #374151;
-  --text3:     #6b7280;
-  --text4:     #9ca3af;
-
-  --green:     #059669;
-  --green-lt:  #ecfdf5;
-  --amber:     #d97706;
-  --amber-lt:  #fffbeb;
-  --red:       #dc2626;
-
-  --radius:    10px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-  --shadow:    0 4px 12px rgba(0,0,0,.08);
-  --shadow-lg: 0 8px 30px rgba(0,0,0,.12);
+  --white:#fff;--bg:#f7f8fc;--bg2:#eef0f8;
+  --surface:#fff;--border:#e2e5ef;--border2:#cdd1e8;
+  --blue:#2563eb;--blue-lt:#eff6ff;--blue-dk:#1d4ed8;
+  --green:#059669;--green-lt:#ecfdf5;
+  --amber:#d97706;--amber-lt:#fffbeb;
+  --purple:#7c3aed;--purple-lt:#f5f3ff;
+  --red:#dc2626;
+  --text:#111827;--text2:#374151;--text3:#6b7280;--text4:#9ca3af;
+  --radius:10px;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --sh2:0 4px 16px rgba(0,0,0,.09);
 }
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:'Heebo',sans-serif;min-height:100vh;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Heebo',sans-serif;min-height:100vh}
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
-/* ═══════ LAYOUT ═══════ */
-.shell{display:grid;grid-template-columns:240px 1fr;grid-template-rows:64px 1fr;grid-template-areas:"nav top""nav main";height:100vh}
+/* ── SHELL ─────────────────────────────────────── */
+.shell{display:grid;grid-template-columns:250px 1fr;grid-template-rows:64px 1fr;grid-template-areas:"nav top""nav main";height:100vh}
 
-/* ═══════ NAV ═══════ */
-nav{
-  grid-area:nav;
-  background:var(--surface);
-  border-left:1px solid var(--border);
-  display:flex;flex-direction:column;
-  overflow-y:auto;
-}
-.nav-logo{
-  padding:20px 18px 16px;
-  border-bottom:1px solid var(--border);
-}
-.logo-mark{
-  font-family:'Noto Serif Hebrew',serif;
-  font-size:22px;font-weight:900;
-  color:var(--blue);
-  line-height:1;
-}
-.logo-tagline{font-size:11px;color:var(--text4);margin-top:3px;letter-spacing:.5px}
+/* ── NAV ─────────────────────────────────────────── */
+nav{grid-area:nav;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.nav-logo{padding:18px 18px 14px;border-bottom:1px solid var(--border)}
+.logo{font-family:'Noto Serif Hebrew',serif;font-size:22px;font-weight:900;color:var(--blue);line-height:1}
+.logo-sub{font-size:11px;color:var(--text4);margin-top:3px}
+.nav-sec{padding:12px 10px 4px}
+.nav-sec-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text4);text-transform:uppercase;padding:0 8px;margin-bottom:4px}
+.nb{display:flex;align-items:center;gap:9px;width:100%;padding:8px 12px;border:none;background:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text2);cursor:pointer;text-align:right;transition:all .15s}
+.nb:hover{background:var(--bg);color:var(--text)}
+.nb.on{background:var(--blue-lt);color:var(--blue);font-weight:600}
+.nb .ic{font-size:16px;flex-shrink:0}
+.nb .bc{margin-right:auto;background:var(--bg2);color:var(--text3);font-size:11px;padding:1px 7px;border-radius:20px}
+.nb.on .bc{background:rgba(37,99,235,.1);color:var(--blue)}
+.ndiv{height:1px;background:var(--border);margin:8px 14px}
 
-.nav-section{padding:14px 10px 6px}
-.nav-section-label{
-  font-size:10px;font-weight:700;letter-spacing:1.5px;
-  color:var(--text4);text-transform:uppercase;
-  padding:0 8px;margin-bottom:4px
-}
+/* progress */
+.prog-box{margin:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:auto}
+.prog-row{display:flex;justify-content:space-between;margin-bottom:6px}
+.prog-lbl{font-size:12px;color:var(--text3)}
+.prog-val{font-size:13px;font-weight:700;color:var(--blue)}
+.prog-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--blue),#60a5fa);border-radius:3px;transition:width 1.5s ease}
+.prog-sub{font-size:11px;color:var(--text4)}
 
-.nav-btn{
-  display:flex;align-items:center;gap:9px;
-  width:100%;padding:8px 12px;
-  border:none;background:none;
-  border-radius:8px;
-  font-family:'Heebo',sans-serif;font-size:14px;
-  color:var(--text2);cursor:pointer;
-  text-align:right;
-  transition:all .15s;
-}
-.nav-btn:hover{background:var(--bg);color:var(--text)}
-.nav-btn.active{background:var(--blue-lt);color:var(--blue);font-weight:600}
-.nav-btn .icon{font-size:16px;flex-shrink:0}
-.nav-btn .badge{
-  margin-right:auto;
-  background:var(--bg2);
-  color:var(--text3);
-  font-size:11px;
-  padding:1px 7px;border-radius:20px;
-}
-.nav-btn.active .badge{background:rgba(37,99,235,.1);color:var(--blue)}
+/* sources pills */
+.src-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.sp{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid}
+.sp.hb{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+.sp.sef{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9}
+.sp.ocr{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
 
-.nav-divider{height:1px;background:var(--border);margin:8px 14px}
+/* ── TOPBAR ──────────────────────────────────────── */
+header{grid-area:top;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 24px;box-shadow:var(--sh);z-index:40}
+.srch{flex:1;max-width:520px;position:relative}
+.srch input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text);padding:9px 40px 9px 14px;outline:none;transition:border-color .2s,box-shadow .2s;direction:rtl}
+.srch input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);background:var(--white)}
+.srch input::placeholder{color:var(--text4)}
+.si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text4);font-size:15px;pointer-events:none}
+.top-stat{display:flex;align-items:center;gap:6px;background:var(--green-lt);border:1px solid #a7f3d0;border-radius:8px;padding:6px 13px;font-size:13px;color:var(--green);font-weight:600;white-space:nowrap}
 
-/* crawl status */
-.crawl-box{
-  margin:10px;
-  background:var(--bg);
-  border:1px solid var(--border);
-  border-radius:10px;
-  padding:12px;
-  margin-top:auto;
-}
-.crawl-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.crawl-label{font-size:12px;color:var(--text3)}
-.crawl-count{font-size:13px;font-weight:700;color:var(--blue)}
-.crawl-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
-.crawl-fill{
-  height:100%;width:0%;
-  background:linear-gradient(90deg,var(--blue),#60a5fa);
-  border-radius:3px;
-  transition:width 1.5s ease;
-}
-.crawl-sub{font-size:11px;color:var(--text4);margin-top:5px}
+/* source filter tabs in topbar */
+.src-tabs{display:flex;gap:4px}
+.st{padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-family:'Heebo',sans-serif;font-size:12px;color:var(--text3);cursor:pointer;transition:all .15s;white-space:nowrap}
+.st:hover{border-color:var(--blue);color:var(--blue)}
+.st.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
 
-/* ═══════ TOPBAR ═══════ */
-header{
-  grid-area:top;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:14px;
-  padding:0 24px;
-  box-shadow:var(--shadow-sm);
-  position:sticky;top:0;z-index:40;
-}
+/* ── MAIN ──────────────────────────────────────────── */
+main{grid-area:main;overflow-y:auto;padding:26px 28px 60px}
+.pgh{margin-bottom:20px}
+.pgt{font-family:'Noto Serif Hebrew',serif;font-size:22px;font-weight:700}
+.pgs{font-size:13px;color:var(--text3);margin-top:3px}
 
-.search-wrap{flex:1;max-width:520px;position:relative}
-.search-wrap input{
-  width:100%;
-  background:var(--bg);
-  border:1.5px solid var(--border);
-  border-radius:10px;
-  font-family:'Heebo',sans-serif;font-size:14px;
-  color:var(--text);
-  padding:9px 40px 9px 14px;
-  outline:none;
-  transition:border-color .2s,box-shadow .2s;
-  direction:rtl;
-}
-.search-wrap input:focus{
-  border-color:var(--blue);
-  box-shadow:0 0 0 3px rgba(37,99,235,.1);
-  background:var(--white);
-}
-.search-wrap input::placeholder{color:var(--text4)}
-.search-icon{
-  position:absolute;left:12px;top:50%;transform:translateY(-50%);
-  color:var(--text4);font-size:15px;pointer-events:none
-}
-
-.top-chip{
-  display:flex;align-items:center;gap:6px;
-  background:var(--green-lt);
-  border:1px solid #a7f3d0;
-  border-radius:8px;
-  padding:6px 13px;
-  font-size:13px;color:var(--green);
-  white-space:nowrap;
-  font-weight:600;
-}
-
-/* ═══════ MAIN ═══════ */
-main{grid-area:main;overflow-y:auto;padding:28px 28px 60px}
-
-/* ═══════ PAGE HEADER ═══════ */
-.pg-head{margin-bottom:22px}
-.pg-title{font-family:'Noto Serif Hebrew',serif;font-size:22px;font-weight:700;color:var(--text)}
-.pg-sub{font-size:13px;color:var(--text3);margin-top:3px}
-
-/* ═══════ FILTER CHIPS ═══════ */
-.filter-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
-.fc{
-  padding:5px 13px;
-  border-radius:20px;
-  border:1.5px solid var(--border);
-  background:var(--white);
-  font-family:'Heebo',sans-serif;font-size:13px;
-  color:var(--text3);cursor:pointer;
-  transition:all .15s;white-space:nowrap;
-}
-.fc:hover{border-color:var(--blue-mid);color:var(--blue)}
+/* filter chips */
+.frow{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
+.fc{padding:5px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);font-family:'Heebo',sans-serif;font-size:13px;color:var(--text3);cursor:pointer;transition:all .15s;white-space:nowrap}
+.fc:hover{border-color:var(--blue);color:var(--blue)}
 .fc.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
 
-/* ═══════ GRID ═══════ */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(175px,1fr));
-  gap:16px;
-  margin-bottom:32px;
-}
+/* ── GRID ──────────────────────────────────────────── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:16px;margin-bottom:32px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .2s ease;animation:rise .35s ease both;position:relative}
+.card:hover{border-color:var(--blue);box-shadow:var(--sh2);transform:translateY(-2px)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
-/* book colors by category */
-.bc-הלכה     {--sp:#2563eb;--sp2:#bfdbfe}
-.bc-מוסר     {--sp:#059669;--sp2:#a7f3d0}
-.bc-חסידות   {--sp:#7c3aed;--sp2:#ddd6fe}
-.bc-פרשנות   {--sp:#d97706;--sp2:#fde68a}
-.bc-קבלה     {--sp:#be185d;--sp2:#fbcfe8}
-.bc-שו׳ת     {--sp:#0891b2;--sp2:#a5f3fc}
-.bc-מחשבה    {--sp:#4f46e5;--sp2:#c7d2fe}
-.bc-פילוסופיה{--sp:#065f46;--sp2:#6ee7b7}
-.bc-תנ׳ך     {--sp:#92400e;--sp2:#fcd34d}
-.bc-אגדה     {--sp:#1d4ed8;--sp2:#93c5fd}
-.bc-מועדים   {--sp:#b45309;--sp2:#fde68a}
-.bc-שבת      {--sp:#0f766e;--sp2:#99f6e4}
+/* spine color by subject */
+.bc-הלכה .cs{background:linear-gradient(135deg,#1e40af,#2563eb)}
+.bc-מוסר .cs{background:linear-gradient(135deg,#065f46,#059669)}
+.bc-חסידות .cs{background:linear-gradient(135deg,#5b21b6,#7c3aed)}
+.bc-פרשנות .cs{background:linear-gradient(135deg,#92400e,#d97706)}
+.bc-קבלה .cs{background:linear-gradient(135deg,#9d174d,#db2777)}
+.bc-שו"ת .cs{background:linear-gradient(135deg,#0e7490,#0891b2)}
+.bc-מחשבה .cs{background:linear-gradient(135deg,#3730a3,#4f46e5)}
+.bc-פילוסופיה .cs{background:linear-gradient(135deg,#064e3b,#047857)}
+.bc-תנ"ך .cs{background:linear-gradient(135deg,#7c2d12,#c2410c)}
+.bc-אגדה .cs{background:linear-gradient(135deg,#1e3a5f,#1d4ed8)}
+.bc-מועדים .cs{background:linear-gradient(135deg,#78350f,#b45309)}
+.bc-שבת .cs{background:linear-gradient(135deg,#134e4a,#0f766e)}
+.bc-תלמוד .cs{background:linear-gradient(135deg,#3b0764,#7e22ce)}
+.bc-משנה .cs{background:linear-gradient(135deg,#1c1917,#44403c)}
+.bc-מדרש .cs{background:linear-gradient(135deg,#0c4a6e,#0369a1)}
+.bc-תפילה .cs{background:linear-gradient(135deg,#4a044e,#86198f)}
+.bc-תוספתא .cs{background:linear-gradient(135deg,#14532d,#166534)}
 
-.card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  overflow:hidden;
-  cursor:pointer;
-  transition:all .2s ease;
-  animation:rise .35s ease both;
-}
-.card:hover{
-  border-color:var(--blue-mid);
-  box-shadow:var(--shadow);
-  transform:translateY(-2px);
-}
-@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.cs{height:110px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:linear-gradient(135deg,#1e3a5f,#2563eb)}
+.cs::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,0))}
+.cs-letter{font-family:'Noto Serif Hebrew',serif;font-size:46px;font-weight:900;color:rgba(255,255,255,.18);z-index:1;user-select:none}
+.cs-src{position:absolute;top:8px;left:8px;font-size:9px;padding:2px 7px;border-radius:20px;font-weight:600;letter-spacing:.3px}
+.cs-src.hb{background:rgba(255,255,255,.2);color:rgba(255,255,255,.9)}
+.cs-src.sef{background:rgba(167,139,250,.4);color:#fff}
+.cs-cat{position:absolute;bottom:8px;right:8px;font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(0,0,0,.25);color:rgba(255,255,255,.85)}
 
-.card-spine{
-  height:108px;
-  position:relative;
-  display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,var(--sp,#2563eb) 0%,color-mix(in srgb,var(--sp,#2563eb) 70%,#000) 100%);
-  overflow:hidden;
-}
-.card-spine::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,0) 60%);
-}
-.card-spine-letter{
-  font-family:'Noto Serif Hebrew',serif;
-  font-size:44px;font-weight:900;
-  color:rgba(255,255,255,.18);
-  z-index:1;user-select:none;
-}
-.card-cat-tag{
-  position:absolute;bottom:8px;right:8px;
-  background:rgba(255,255,255,.15);
-  backdrop-filter:blur(4px);
-  border:1px solid rgba(255,255,255,.2);
-  border-radius:20px;
-  font-size:10px;color:rgba(255,255,255,.9);
-  padding:2px 8px;font-weight:500;
-}
+/* text badge */
+.text-badge{position:absolute;top:8px;right:8px;background:var(--green);color:#fff;font-size:9px;padding:2px 7px;border-radius:20px;font-weight:700;z-index:5}
 
-.card-body{padding:12px 12px 10px}
-.card-title{
-  font-family:'Noto Serif Hebrew',serif;
-  font-size:14px;font-weight:700;
-  color:var(--text);line-height:1.4;
-  margin-bottom:3px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-}
-.card-author{
-  font-size:12px;color:var(--text3);
-  margin-bottom:10px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.card-btn{
-  width:100%;
-  padding:7px;
-  border-radius:7px;
-  border:1.5px solid var(--border);
-  background:transparent;
-  color:var(--blue);
-  font-family:'Heebo',sans-serif;font-size:12px;font-weight:600;
-  cursor:pointer;
-  transition:all .15s;
-  display:flex;align-items:center;justify-content:center;gap:5px;
-}
-.card-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.cb{padding:11px 12px 10px}
+.ct{font-family:'Noto Serif Hebrew',serif;font-size:14px;font-weight:700;color:var(--text);line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ca{font-size:12px;color:var(--text3);margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:16px}
+.card-btns{display:flex;gap:6px}
+.cbtn{flex:1;padding:7px 4px;border-radius:7px;border:1.5px solid var(--border);background:transparent;color:var(--blue);font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:3px}
+.cbtn:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.cbtn.ocr-btn{color:var(--green);border-color:#a7f3d0}
+.cbtn.ocr-btn:hover{background:var(--green);color:#fff;border-color:var(--green)}
 
-/* ═══════ PAGINATION ═══════ */
+/* ── PAGINATION ─────────────────────────────────── */
 .pager{display:flex;justify-content:center;align-items:center;gap:5px;padding:16px 0 8px}
-.pb{
-  min-width:34px;height:34px;
-  border-radius:8px;
-  border:1.5px solid var(--border);
-  background:var(--white);
-  color:var(--text2);
-  font-family:'Heebo',sans-serif;font-size:13px;
-  cursor:pointer;transition:all .15s;
-  display:flex;align-items:center;justify-content:center;
-  padding:0 8px;
-}
-.pb:hover:not(:disabled){border-color:var(--blue-mid);color:var(--blue);background:var(--blue-lt)}
+.pb{min-width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:var(--white);color:var(--text2);font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;padding:0 8px}
+.pb:hover:not(:disabled){border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
 .pb.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
 .pb:disabled{opacity:.3;cursor:default}
 
-/* ═══════ LOADER ═══════ */
+/* ── LOADER ───────────────────────────────────────── */
 .loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:14px;color:var(--text3)}
-.spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:rot .7s linear infinite}
+.spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:rot .7s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
-
-/* ═══════ EMPTY ═══════ */
 .empty{text-align:center;padding:80px 20px}
-.empty svg{margin-bottom:14px;opacity:.25}
-.empty-title{font-size:17px;color:var(--text2);font-weight:600;margin-bottom:6px}
-.empty-sub{font-size:13px;color:var(--text3)}
+.empty-icon{font-size:52px;margin-bottom:14px;opacity:.2}
+.empty-title{font-size:17px;font-weight:600;color:var(--text2);margin-bottom:6px}
 
-/* ═══════ VIEWER OVERLAY ═══════ */
-.viewer{
-  position:fixed;inset:0;
-  background:rgba(15,20,40,.6);
-  backdrop-filter:blur(6px);
-  z-index:200;
-  display:none;flex-direction:column;
-  animation:fadeIn .2s ease;
-}
-.viewer.open{display:flex}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+/* ── VIEWER ───────────────────────────────────────── */
+.vov{position:fixed;inset:0;background:rgba(15,20,40,.55);backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center;animation:fi .2s ease}
+.vov.open{display:flex}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.vshell{width:min(1100px,96vw);height:90vh;background:var(--surface);border-radius:16px;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.18);display:flex;flex-direction:column;overflow:hidden}
+.vbar{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.vtitle{flex:1;font-family:'Noto Serif Hebrew',serif;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vb{height:32px;padding:0 13px;border-radius:7px;border:1.5px solid var(--border);background:var(--white);color:var(--text2);font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.vb:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+.vb.cl{border-color:transparent}
+.vb.cl:hover{background:#fee2e2;color:var(--red);border-color:#fca5a5}
+.vb.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 
-.viewer-shell{
-  margin:auto;
-  width:min(1100px,96vw);
-  height:90vh;
-  background:var(--surface);
-  border-radius:16px;
-  border:1px solid var(--border);
-  box-shadow:var(--shadow-lg);
-  display:flex;flex-direction:column;
-  overflow:hidden;
-}
+/* viewer tabs */
+.vtabs{display:flex;gap:2px;padding:0 18px 10px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0}
+.vtab{padding:6px 16px;border-radius:7px;border:1.5px solid var(--border);background:var(--white);font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;transition:all .15s;color:var(--text3)}
+.vtab:hover{border-color:var(--blue);color:var(--blue)}
+.vtab.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600}
 
-.viewer-bar{
-  display:flex;align-items:center;gap:10px;
-  padding:12px 18px;
-  border-bottom:1px solid var(--border);
-  background:var(--bg);
-  flex-shrink:0;
-}
-.viewer-bar-title{
-  flex:1;
-  font-family:'Noto Serif Hebrew',serif;
-  font-size:16px;font-weight:700;
-  color:var(--text);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
+/* viewer body */
+.vbody{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.vbody iframe{width:100%;height:100%;border:none}
 
-.vb{
-  height:32px;padding:0 13px;
-  border-radius:7px;
-  border:1.5px solid var(--border);
-  background:var(--white);
-  color:var(--text2);
-  font-family:'Heebo',sans-serif;font-size:13px;
-  cursor:pointer;transition:all .15s;
-  display:flex;align-items:center;gap:5px;
-  white-space:nowrap;
-}
-.vb:hover{border-color:var(--blue-mid);color:var(--blue);background:var(--blue-lt)}
-.vb.close{border-color:transparent;color:var(--text3)}
-.vb.close:hover{background:#fee2e2;color:var(--red);border-color:#fca5a5}
+/* text reader */
+.treader{flex:1;overflow-y:auto;padding:32px 48px;direction:rtl}
+.treader-content{font-family:'Noto Serif Hebrew',serif;font-size:18px;line-height:2;color:var(--text);max-width:680px;margin:0 auto;white-space:pre-wrap}
+.treader-toolbar{display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0;align-items:center}
+.fsize-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s}
+.fsize-btn:hover{border-color:var(--blue);color:var(--blue)}
+.ocr-trigger{padding:6px 14px;border-radius:7px;border:1.5px solid #a7f3d0;background:var(--green-lt);color:var(--green);font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.ocr-trigger:hover{background:var(--green);color:#fff;border-color:var(--green)}
+.ocr-running{color:var(--amber);border-color:#fde68a;background:var(--amber-lt)}
 
-.viewer-frame{flex:1;overflow:hidden}
-.viewer-frame iframe{width:100%;height:100%;border:none}
-
-/* ═══════ MOBILE ═══════ */
+/* ── MOBILE ───────────────────────────────────────── */
 @media(max-width:720px){
   .shell{grid-template-columns:1fr;grid-template-rows:56px 1fr;grid-template-areas:"top""main"}
   nav{display:none}
   main{padding:16px}
   .grid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
-  .viewer-shell{width:100%;height:100%;border-radius:0}
+  .vshell{width:100%;height:100%;border-radius:0}
+  .src-tabs,.top-stat{display:none}
+  .treader{padding:20px}
+  .treader-content{font-size:16px}
 }
 </style>
 </head>
 <body>
 <div class="shell">
 
-<!-- ══ NAV ═══════════════════════════════════════ -->
-<nav id="nav">
+<!-- ══ NAV ═══════════════════════════════════ -->
+<nav>
   <div class="nav-logo">
-    <div class="logo-mark">גנזך</div>
-    <div class="logo-tagline">ספרייה יהודית דיגיטלית</div>
+    <div class="logo">גנזך</div>
+    <div class="logo-sub">ספרייה יהודית דיגיטלית</div>
   </div>
 
-  <div class="nav-section">
-    <div class="nav-section-label">ניווט</div>
-    <button class="nav-btn active" id="nb-home" onclick="goHome()">
-      <span class="icon">🏠</span> ספרייה ראשית
+  <div class="nav-sec">
+    <div class="nav-sec-lbl">ניווט</div>
+    <button class="nb on" id="nb-home" onclick="goHome()">
+      <span class="ic">🏠</span> ספרייה ראשית
     </button>
-    <button class="nav-btn" id="nb-all" onclick="goAll()">
-      <span class="icon">📚</span> כל הספרים
+    <button class="nb" id="nb-all" onclick="goAll()">
+      <span class="ic">📚</span> כל הספרים
+    </button>
+    <button class="nb" id="nb-text" onclick="goText()">
+      <span class="ic">📝</span> ספרים עם טקסט
+      <span class="bc" id="textCount">…</span>
     </button>
   </div>
 
-  <div class="nav-divider"></div>
+  <div class="ndiv"></div>
 
-  <div class="nav-section">
-    <div class="nav-section-label">קטגוריות</div>
-    <div id="catList">
-      <div class="loader" style="padding:20px"><div class="spin"></div></div>
-    </div>
+  <div class="nav-sec">
+    <div class="nav-sec-lbl">מקורות</div>
+    <button class="nb" id="nb-hb" onclick="goSource('hebrewbooks')">
+      <span class="ic">📖</span> HebrewBooks
+      <span class="bc" id="hbCount">…</span>
+    </button>
+    <button class="nb" id="nb-sef" onclick="goSource('sefaria')">
+      <span class="ic">✨</span> Sefaria
+      <span class="bc" id="sefCount">…</span>
+    </button>
+    <button class="nb" id="nb-by" onclick="goSource('benyehuda')">
+      <span class="ic">📚</span> פרויקט בן-יהודה
+      <span class="bc" id="byCount">…</span>
+    </button>
+    <button class="nb" id="nb-ws" onclick="goSource('wikisource')">
+      <span class="ic">🌐</span> ויקיטקסט
+      <span class="bc" id="wsCount">…</span>
+    </button>
+    <button class="nb" id="nb-mamre" onclick="goSource('mamre')">
+      <span class="ic">📜</span> מכון ממרא
+      <span class="bc" id="mamreCount">…</span>
+    </button>
+    <button class="nb" id="nb-daat" onclick="goSource('daat')">
+      <span class="ic">🕌</span> דעת
+      <span class="bc" id="daatCount">…</span>
+    </button>
   </div>
 
-  <div class="crawl-box">
-    <div class="crawl-header">
-      <span class="crawl-label">🕷 ספרים נסרקו</span>
-      <span class="crawl-count" id="crawlNum">0</span>
+  <div class="ndiv"></div>
+
+  <div class="nav-sec">
+    <div class="nav-sec-lbl">קטגוריות</div>
+    <div id="catList"></div>
+  </div>
+
+  <div class="prog-box">
+    <div class="prog-row">
+      <span class="prog-lbl">📚 סה"כ ספרים</span>
+      <span class="prog-val" id="pTotal">0</span>
     </div>
-    <div class="crawl-track"><div class="crawl-fill" id="crawlBar"></div></div>
-    <div class="crawl-sub">יעד: 100,000 ספרים</div>
+    <div class="prog-track"><div class="prog-fill" id="pFill"></div></div>
+    <div class="prog-sub">יעד: 100,000 ספרים</div>
+    <div class="src-pills" id="srcPills"></div>
   </div>
 </nav>
 
-<!-- ══ TOPBAR ════════════════════════════════════ -->
+<!-- ══ TOPBAR ═══════════════════════════════════ -->
 <header>
-  <div class="search-wrap">
-    <span class="search-icon">🔍</span>
+  <div class="srch">
+    <span class="si">🔍</span>
     <input id="q" type="text" placeholder="חפש ספר, מחבר, נושא..." autocomplete="off">
   </div>
-  <div class="top-chip">
-    <span>📚</span>
-    <span id="totalNum">…</span>
-    <span>ספרים</span>
+  <div class="src-tabs">
+    <button class="st on" onclick="setSrcTab('')"   id="st-all">הכל</button>
+    <button class="st"    onclick="setSrcTab('hebrewbooks')" id="st-hb">📖 עתיקים</button>
+    <button class="st"    onclick="setSrcTab('sefaria')"     id="st-sef">✨ חדשים</button>
   </div>
+  <div class="top-stat">📚 <span id="topTotal">…</span> ספרים</div>
 </header>
 
 <!-- ══ MAIN ══════════════════════════════════════ -->
 <main id="main">
   <div class="loader"><div class="spin"></div>טוען ספרייה...</div>
 </main>
-
 </div>
 
-<!-- ══ VIEWER ════════════════════════════════════ -->
-<div class="viewer" id="viewer">
-  <div class="viewer-shell">
-    <div class="viewer-bar">
-      <div class="viewer-bar-title" id="vTitle">טוען ספר...</div>
-      <button class="vb" onclick="dlBook()">⬇ הורד PDF</button>
-      <button class="vb" onclick="newTab()">↗ חלון חדש</button>
-      <button class="vb close" onclick="closeV()">✕</button>
+<!-- ══ VIEWER ══════════════════════════════════════ -->
+<div class="vov" id="vov">
+  <div class="vshell">
+    <div class="vbar">
+      <div class="vtitle" id="vtitle">טוען...</div>
+      <button class="vb" id="vDlBtn" onclick="vDownload()">⬇ הורד</button>
+      <button class="vb" id="vNewBtn" onclick="vNewTab()">↗ חלון חדש</button>
+      <button class="vb cl" onclick="closeV()">✕</button>
     </div>
-    <div class="viewer-frame">
-      <iframe id="frame" src="" allowfullscreen></iframe>
+    <div class="vtabs" id="vtabs">
+      <button class="vtab on" id="vtab-pdf" onclick="switchTab('pdf')">📄 קריאת PDF</button>
+      <button class="vtab" id="vtab-text" onclick="switchTab('text')">📝 טקסט קריא</button>
+    </div>
+    <div class="vbody" id="vbody">
+      <iframe id="vframe" src=""></iframe>
     </div>
   </div>
 </div>
 
 <script>
 // ══ STATE ══════════════════════════════════════════
-const S = {q:'', subject:'', page:1, bid:null, mode:'home'};
-
-// ══ HELPERS ════════════════════════════════════════
-const $  = id => document.getElementById(id);
-const esc = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
-// category → spine color class
-const CATCLS = {
-  'הלכה':'bc-הלכה','מוסר':'bc-מוסר','חסידות':'bc-חסידות',
-  'פרשנות':'bc-פרשנות','קבלה':'bc-קבלה','שו"ת':'bc-שו׳ת',
-  'מחשבה':'bc-מחשבה','פילוסופיה':'bc-פילוסופיה','תנ"ך':'bc-תנ׳ך',
-  'אגדה':'bc-אגדה','מועדים':'bc-מועדים','שבת':'bc-שבת',
+const S = {
+  q:'', subj:'', page:1, source:'',
+  bid:null, btitle:'', bsource:'',
+  tab:'pdf', fs:18,
+  mode:'home', hasText:false,
+  subjects: []
 };
 
-const CAT_ICONS = {
-  'הלכה':'⚖️','מוסר':'🌱','חסידות':'✨','פרשנות':'📖',
-  'קבלה':'🔯','שו"ת':'📝','מחשבה':'🧠','פילוסופיה':'💡',
-  'תנ"ך':'📜','אגדה':'🕯','מועדים':'🎊','שבת':'🕍',
-};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-function spineChar(title) {
-  const heb = (title||'').match(/[\u05D0-\u05EA]/);
-  return heb ? heb[0] : 'ס';
-}
+// ══ CARD SUBJECT CLASS ══════════════════════════════
+const SUBJ_LIST=['הלכה','מוסר','חסידות','פרשנות','קבלה','שו"ת','מחשבה','פילוסופיה','תנ"ך','אגדה','מועדים','שבת','תלמוד','משנה','מדרש','תפילה','תוספתא'];
+function subjectClass(s){return SUBJ_LIST.includes(s)?`bc-${s}`:'';}
 
-// ══ RENDER CARD ════════════════════════════════════
-function renderCard(b, i) {
-  const cc   = CATCLS[b.subject] || '';
-  const ch   = spineChar(b.title);
-  const tag  = b.subject ? `<div class="card-cat-tag">${esc(b.subject)}</div>` : '';
-  const auth = b.author ? `<div class="card-author">${esc(b.author)}</div>` : '<div class="card-author" style="height:16px"></div>';
+function firstHeb(t){const m=(t||'').match(/[\u05D0-\u05EA]/);return m?m[0]:'ס';}
+
+// ══ RENDER CARD ═════════════════════════════════════
+function card(b, i){
+  const sc  = subjectClass(b.subject);
+  const srcTag = b.source==='sefaria'
+    ? '<span class="cs-src sef">Sefaria</span>'
+    : '<span class="cs-src hb">HebrewBooks</span>';
+  const catTag = b.subject ? `<span class="cs-cat">${esc(b.subject)}</span>` : '';
+  const textBadge = b.has_text ? '<span class="text-badge">טקסט ✓</span>' : '';
+
+  const readBtn = `<button class="cbtn" onclick="event.stopPropagation();openBook('${b.id}','${esc(b.title).replace(/'/g,"\\'")}','${b.source}','pdf')">📄 קרא</button>`;
+  const textBtn = b.has_text
+    ? `<button class="cbtn" onclick="event.stopPropagation();openBook('${b.id}','${esc(b.title).replace(/'/g,"\\'")}','${b.source}','text')">📝 טקסט</button>`
+    : b.source==='hebrewbooks'
+      ? `<button class="cbtn ocr-btn" onclick="event.stopPropagation();triggerOCR('${b.id}',this)">🔍 OCR</button>`
+      : '';
+
   return `
-  <div class="card ${cc}" style="animation-delay:${i*.03}s" onclick="openBook(${b.id},'${esc(b.title).replace(/'/g,"\\'")}','${esc(b.subject||'')}')">
-    <div class="card-spine">
-      <div class="card-spine-letter">${ch}</div>
-      ${tag}
+  <div class="card ${sc}" style="animation-delay:${i*.03}s" onclick="openBook('${b.id}','${esc(b.title).replace(/'/g,"\\'")}','${b.source}','${b.has_text?'text':'pdf'}')">
+    ${textBadge}
+    <div class="cs">
+      <div class="cs-letter">${firstHeb(b.he_title||b.title)}</div>
+      ${srcTag}${catTag}
     </div>
-    <div class="card-body">
-      <div class="card-title">${esc(b.title)}</div>
-      ${auth}
-      <button class="card-btn">📖 קרא עכשיו</button>
+    <div class="cb">
+      <div class="ct">${esc(b.he_title||b.title)}</div>
+      <div class="ca">${esc(b.author||'')}</div>
+      <div class="card-btns">${readBtn}${textBtn}</div>
     </div>
   </div>`;
 }
 
-// ══ RENDER PAGE ════════════════════════════════════
-function renderBooks(data) {
-  const {books, total, page, pages} = data;
-  if (!books.length) {
-    $('main').innerHTML = `
-      <div class="empty">
-        <div style="font-size:56px;margin-bottom:12px;opacity:.2">📭</div>
-        <div class="empty-title">לא נמצאו ספרים</div>
-        <div class="empty-sub">נסה מילת חיפוש אחרת</div>
-      </div>`;
+function renderBooks(data){
+  const {books,total,page,pages}=data;
+  if(!books.length){
+    $('main').innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">לא נמצאו ספרים</div><div style="color:var(--text3);font-size:13px">נסה מילת חיפוש אחרת</div></div>`;
     return;
   }
-
-  // filter chips
-  let chips = '';
-  if (S.mode==='search' || S.subject) {
-    chips = renderChips();
-  }
-
-  const grid = `<div class="grid">${books.map(renderCard).join('')}</div>`;
-  const pager = pages>1 ? renderPager(page, pages) : '';
-  const note  = total > 0
-    ? `<div class="pg-sub">${total.toLocaleString()} ספרים נמצאו</div>`
-    : '';
-
-  $('main').innerHTML = `
-    <div class="pg-head">
-      <div class="pg-title">${pageTitle()}</div>
-      ${note}
+  const chips = (S.mode==='search'||S.subj||S.source) ? renderChips() : '';
+  const grid  = `<div class="grid">${books.map(card).join('')}</div>`;
+  const pager = pages>1 ? renderPager(page,pages) : '';
+  $('main').innerHTML=`
+    <div class="pgh">
+      <div class="pgt">${esc(pageTitle())}</div>
+      <div class="pgs">${total.toLocaleString()} ספרים נמצאו</div>
     </div>
     ${chips}${grid}${pager}`;
-  $('main').scrollTop = 0;
+  $('main').scrollTop=0;
 }
 
-function pageTitle() {
-  if (S.mode==='home') return 'ספרים מומלצים';
-  if (S.subject) return S.subject;
-  if (S.q) return `תוצאות: "${S.q}"`;
+function pageTitle(){
+  if(S.mode==='home') return 'ספרים מומלצים';
+  if(S.source==='sefaria') return '✨ ספרים חדשים — Sefaria';
+  if(S.source==='hebrewbooks') return '📖 HebrewBooks — ספרים עתיקים';
+  if(S.hasText) return '📝 ספרים עם טקסט קריא';
+  if(S.subj) return S.subj;
+  if(S.q) return `תוצאות: "${S.q}"`;
   return 'כל הספרים';
 }
 
-// ══ FILTER CHIPS ═══════════════════════════════════
-let _subjects = [];
-function renderChips() {
-  if (!_subjects.length) return '';
-  const all  = `<div class="fc ${!S.subject?'on':''}" onclick="filterSubj('')">הכל</div>`;
-  const rest = _subjects.map(s =>
-    `<div class="fc ${S.subject===s.name?'on':''}" onclick="filterSubj('${esc(s.name)}')">${esc(s.name)}</div>`
-  ).join('');
-  return `<div class="filter-row">${all}${rest}</div>`;
+// ══ CHIPS ═══════════════════════════════════════════
+function renderChips(){
+  if(!S.subjects.length) return '';
+  const all=`<div class="fc ${!S.subj?'on':''}" onclick="filterSubj('')">הכל</div>`;
+  const rest=S.subjects.map(s=>`<div class="fc ${S.subj===s.name?'on':''}" onclick="filterSubj('${esc(s.name)}')">${esc(s.name)}</div>`).join('');
+  return `<div class="frow">${all}${rest}</div>`;
 }
 
-function filterSubj(s) {
-  S.subject=s; S.page=1;
-  if (s) { S.mode='subj'; loadSearch(); }
-  else   { S.mode='all';  loadSearch(); }
-}
+function filterSubj(s){S.subj=s;S.page=1;loadSearch();}
 
-// ══ PAGINATION ═════════════════════════════════════
-function renderPager(cur, tot) {
-  let h = '';
-  h += `<button class="pb" onclick="goPage(${cur-1})" ${cur<=1?'disabled':''}>‹</button>`;
-  const s=Math.max(1,cur-2), e=Math.min(tot,cur+2);
-  if(s>1) h+=`<button class="pb" onclick="goPage(1)">1</button>${s>2?'<span style="padding:0 4px;color:var(--text4)">…</span>':''}`;
-  for(let i=s;i<=e;i++) h+=`<button class="pb ${i===cur?'on':''}" onclick="goPage(${i})">${i}</button>`;
-  if(e<tot) h+=`${e<tot-1?'<span style="padding:0 4px;color:var(--text4)">…</span>':''}<button class="pb" onclick="goPage(${tot})">${tot}</button>`;
-  h += `<button class="pb" onclick="goPage(${cur+1})" ${cur>=tot?'disabled':''}>›</button>`;
+// ══ PAGER ═══════════════════════════════════════════
+function renderPager(cur,tot){
+  let h='';
+  h+=`<button class="pb" onclick="gp(${cur-1})" ${cur<=1?'disabled':''}>‹</button>`;
+  const s=Math.max(1,cur-2),e=Math.min(tot,cur+2);
+  if(s>1) h+=`<button class="pb" onclick="gp(1)">1</button>${s>2?'<span style="padding:0 4px;color:var(--text4)">…</span>':''}`;
+  for(let i=s;i<=e;i++) h+=`<button class="pb ${i===cur?'on':''}" onclick="gp(${i})">${i}</button>`;
+  if(e<tot) h+=`${e<tot-1?'<span style="padding:0 4px;color:var(--text4)">…</span>':''}<button class="pb" onclick="gp(${tot})">${tot}</button>`;
+  h+=`<button class="pb" onclick="gp(${cur+1})" ${cur>=tot?'disabled':''}>›</button>`;
   return `<div class="pager">${h}</div>`;
 }
+function gp(p){S.page=p;loadSearch();}
 
-function goPage(p) { S.page=p; loadSearch(); }
+// ══ VIEWS ═══════════════════════════════════════════
+function loader(){$('main').innerHTML='<div class="loader"><div class="spin"></div>טוען...</div>';}
 
-// ══ VIEWS ══════════════════════════════════════════
-function showLoader() {
-  $('main').innerHTML = '<div class="loader"><div class="spin"></div>טוען...</div>';
+function setNav(id){document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));$(id)&&$(id).classList.add('on');}
+
+async function goHome(){
+  S.mode='home';S.q='';S.subj='';S.source='';S.page=1;S.hasText=false;
+  setNav('nb-home');$('q').value='';
+  loader();
+  const d=await fetch('/api/featured').then(r=>r.json());
+  renderBooks({books:d.books,total:d.books.length,page:1,pages:1});
 }
 
-async function goHome() {
-  S.mode='home'; S.q=''; S.subject=''; S.page=1;
-  setNavActive('nb-home');
-  showLoader();
-  const d = await fetch('/api/featured').then(r=>r.json());
-  renderBooks({books:d.books, total:d.books.length, page:1, pages:1});
+async function goAll(){
+  S.mode='all';S.q='';S.subj='';S.source='';S.page=1;S.hasText=false;
+  setNav('nb-all');$('q').value='';loader();await loadSearch();
 }
 
-async function goAll() {
-  S.mode='all'; S.q=''; S.subject=''; S.page=1;
-  setNavActive('nb-all');
-  showLoader();
-  await loadSearch();
+async function goText(){
+  S.mode='text';S.q='';S.subj='';S.source='';S.page=1;S.hasText=true;
+  setNav('nb-text');$('q').value='';loader();await loadSearch();
 }
 
-async function loadSearch() {
-  showLoader();
-  const p = new URLSearchParams({q:S.q, page:S.page, subject:S.subject});
-  const d = await fetch(`/api/search?${p}`).then(r=>r.json());
+async function goSource(src){
+  S.mode='source';S.q='';S.subj='';S.source=src;S.page=1;S.hasText=false;
+  setNav(src==='hebrewbooks'?'nb-hb':'nb-sef');$('q').value='';loader();await loadSearch();
+}
+
+function setSrcTab(src){
+  S.source=src;S.page=1;
+  document.querySelectorAll('.st').forEach(b=>b.classList.remove('on'));
+  const ids={'':'st-all','hebrewbooks':'st-hb','sefaria':'st-sef'};
+  $(ids[src])&&$(ids[src]).classList.add('on');
+  if(S.mode!=='home') loadSearch();
+}
+
+async function loadSearch(){
+  loader();
+  const p=new URLSearchParams({q:S.q,page:S.page,subject:S.subj,source:S.source,has_text:S.hasText?'1':''});
+  const d=await fetch(`/api/search?${p}`).then(r=>r.json());
   renderBooks(d);
 }
 
-function setNavActive(id) {
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  $(id) && $(id).classList.add('active');
-}
-
-// ══ SIDEBAR CATS ═══════════════════════════════════
-function buildCatList(subjects) {
-  if (!subjects.length) { $('catList').innerHTML=''; return; }
-  $('catList').innerHTML = subjects.map(s => {
-    const ic = CAT_ICONS[s.name] || '📂';
-    return `
-    <button class="nav-btn ${S.subject===s.name?'active':''}" id="cat-${esc(s.name)}" onclick="clickCat('${esc(s.name)}')">
-      <span class="icon">${ic}</span>
+// ══ SIDEBAR CATS ════════════════════════════════════
+function buildCats(subjects){
+  const ICONS={'הלכה':'⚖️','מוסר':'🌱','חסידות':'✨','פרשנות':'📖','קבלה':'🔯','שו"ת':'📝','מחשבה':'🧠','פילוסופיה':'💡','תנ"ך':'📜','אגדה':'🕯','מועדים':'🎊','שבת':'🕍','תלמוד':'📚','משנה':'📋','מדרש':'🌟','תפילה':'🙏','תוספתא':'📒'};
+  $('catList').innerHTML=subjects.slice(0,15).map(s=>`
+    <button class="nb ${S.subj===s.name?'on':''}" onclick="clickCat('${esc(s.name)}')">
+      <span class="ic">${ICONS[s.name]||'📂'}</span>
       ${esc(s.name)}
-      <span class="badge">${s.count}</span>
-    </button>`;
-  }).join('');
+      <span class="bc">${s.count}</span>
+    </button>`).join('');
 }
 
-function clickCat(name) {
-  S.subject=name; S.mode='subj'; S.page=1; S.q='';
+function clickCat(name){
+  S.subj=name;S.mode='cat';S.source='';S.page=1;S.q='';S.hasText=false;
   $('q').value='';
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  $(`cat-${name}`) && $(`cat-${name}`).classList.add('active');
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   loadSearch();
 }
 
-// ══ STATS ══════════════════════════════════════════
-async function refreshStats() {
-  try {
-    const d = await fetch('/api/stats').then(r=>r.json());
-    $('totalNum').textContent = d.total.toLocaleString();
-    $('crawlNum').textContent = d.total.toLocaleString();
-    $('crawlBar').style.width = Math.min(100, d.total/1000) + '%';
-    _subjects = d.subjects;
-    buildCatList(d.subjects);
-  } catch {}
+// ══ STATS ═══════════════════════════════════════════
+async function refreshStats(){
+  try{
+    const d=await fetch('/api/stats').then(r=>r.json());
+    $('pTotal').textContent=d.total.toLocaleString();
+    $('topTotal').textContent=d.total.toLocaleString();
+    const src=d.by_source||{};
+    $('hbCount').textContent=(src.hebrewbooks||0).toLocaleString();
+    $('sefCount').textContent=(src.sefaria||0).toLocaleString();
+    $('byCount').textContent=(src.benyehuda||0).toLocaleString();
+    $('wsCount').textContent=(src.wikisource||0).toLocaleString();
+    $('mamreCount').textContent=(src.mamre||0).toLocaleString();
+    $('daatCount').textContent=(src.daat||0).toLocaleString();
+    $('textCount').textContent=(d.with_text||0).toLocaleString();
+    $('pFill').style.width=Math.min(100,d.total/1000)+'%';
+    const imp=d.improved||0;
+    $('srcPills').innerHTML=`
+      <span class="sp hb">HB: ${(src.hebrewbooks||0).toLocaleString()}</span>
+      <span class="sp sef">Sefaria: ${(src.sefaria||0).toLocaleString()}</span>
+      <span class="sp ocr">בן-יהודה: ${(src.benyehuda||0).toLocaleString()}</span>
+      <span class="sp ocr">ויקיטקסט: ${(src.wikisource||0).toLocaleString()}</span>
+      <span class="sp ocr">✨ שופרו: ${imp.toLocaleString()}</span>`;
+    S.subjects=d.subjects;
+    buildCats(d.subjects);
+  }catch{}
 }
 
-// ══ VIEWER ════════════════════════════════════════
-function openBook(id, title, subj) {
-  S.bid = id; S._title = title;
-  $('vTitle').textContent = title;
-  // Use HebrewBooks' own viewer — full book, all pages, proper zoom
-  $('frame').src = `https://hebrewbooks.org/pdfpager.aspx?req=${id}`;
-  $('viewer').classList.add('open');
+// ══ VIEWER ══════════════════════════════════════════
+async function openBook(id,title,source,preferTab){
+  S.bid=id;S.btitle=title;S.bsource=source;
+  $('vtitle').textContent=title;
+
+  // Fetch viewer info
+  const info=await fetch(`/api/viewer/${encodeURIComponent(id)}`).then(r=>r.json());
+
+  // Check if text available
+  const bdata=await fetch(`/api/book/${encodeURIComponent(id)}`).then(r=>r.json());
+  const hasText=!!(bdata.text);
+
+  // Show/hide tabs
+  const pdftab=$('vtab-pdf');
+  const txttab=$('vtab-text');
+  txttab.style.display = (hasText||source==='sefaria') ? '' : 'none';
+
+  // Download/new tab buttons
+  if(info.type==='sefaria'){
+    $('vDlBtn').style.display='none';
+    $('vNewBtn').onclick=()=>window.open(info.url,'_blank');
+  } else {
+    $('vDlBtn').style.display='';
+    $('vNewBtn').onclick=()=>window.open(info.url,'_blank');
+  }
+
+  // Decide which tab to open
+  const tab = (preferTab==='text'&&hasText) ? 'text' : 'pdf';
+  switchTab(tab, info, bdata.text, title);
+
+  $('vov').classList.add('open');
   document.body.style.overflow='hidden';
 }
-function closeV() {
-  $('viewer').classList.remove('open');
-  $('frame').src='';
+
+function switchTab(tab, info, text, title){
+  S.tab=tab;
+  document.querySelectorAll('.vtab').forEach(b=>b.classList.remove('on'));
+  $(`vtab-${tab}`)&&$(`vtab-${tab}`).classList.add('on');
+
+  if(tab==='pdf'){
+    let url='';
+    if(S.bsource==='sefaria'){
+      url=`https://www.sefaria.org/${encodeURIComponent(S.btitle)}`;
+    } else if(S.bsource==='wikisource'||S.bsource==='benyehuda'||S.bsource==='mamre'||S.bsource==='daat'){
+      url = info ? info.url : '#';
+    } else {
+      const num=S.bid.replace('hb-','');
+      url=`https://hebrewbooks.org/pdfpager.aspx?req=${num}`;
+    }
+    $('vbody').innerHTML=`<iframe id="vframe" src="${url}" allowfullscreen></iframe>`;
+  } else {
+    // Text reader — fetch fresh from server
+    fetchAndShowText(S.bid);
+  }
+}
+
+async function fetchAndShowText(bid){
+  // Show loading spinner
+  $('vbody').innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+      height:100%;gap:20px;color:var(--text3)">
+      <div class="spin"></div>
+      <div id="ocrStatus" style="font-size:15px;font-weight:600">טוען טקסט...</div>
+      <div id="ocrSub" style="font-size:13px">אם זו הפעם הראשונה, ה-OCR עשוי לקחת 2-3 דקות</div>
+      <div id="ocrProgress" style="width:280px;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div id="ocrBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--blue),#60a5fa);border-radius:3px;transition:width .5s ease"></div>
+      </div>
+    </div>`;
+
+  try {
+    const d = await fetch(`/api/book/${encodeURIComponent(bid)}`).then(r=>r.json());
+
+    if(d.text){
+      // יש טקסט — הצג מיד
+      renderTextReader(d.text, d.has_improved, bid);
+      return;
+    }
+
+    // אין טקסט — הפעל OCR אוטומטית אם זה HebrewBooks
+    if(bid.startsWith('hb-')){
+      setOcrStatus('🔍 מתחיל OCR...', 'מנתח את הדף ומשפר איכות תמונה', 10);
+      await fetch(`/api/ocr/${encodeURIComponent(bid)}`, {method:'POST'});
+      // Poll עד שיש תוצאה
+      await pollForText(bid);
+    } else {
+      renderTextReader('', false, bid);
+    }
+  } catch(e) {
+    $('vbody').innerHTML=`<div style="padding:40px;text-align:center;color:var(--red)">שגיאה בטעינת טקסט</div>`;
+  }
+}
+
+function setOcrStatus(title, sub, pct){
+  $('ocrStatus') && ($('ocrStatus').textContent = title);
+  $('ocrSub')    && ($('ocrSub').textContent    = sub);
+  $('ocrBar')    && ($('ocrBar').style.width     = pct+'%');
+}
+
+async function pollForText(bid){
+  const PHASES = [
+    [5,  '📄 מוריד PDF...',             'מוריד את הספר מ-HebrewBooks', 15],
+    [10, '🖼 ממיר לתמונות...',          'ממיר כל עמוד לתמונה ב-300 DPI', 25],
+    [20, '🔬 משפר איכות תמונה...',     'מתקן טשטוש, ניגוד ושיפוע', 40],
+    [30, '🔤 מזהה סוג כתב...',          'רש"י / דפוס רגיל / עמודות', 50],
+    [45, '📖 מריץ OCR...',              'ממיר תמונה לטקסט עברי', 65],
+    [90, '✨ Claude משפר טקסט...',      'מתקן שגיאות ומשחזר מילים', 85],
+    [120,'⏳ עוד רגע...',               'מסיים שיפור ושמירה', 95],
+  ];
+
+  let phaseIdx = 0;
+  let elapsed  = 0;
+
+  const interval = setInterval(async () => {
+    elapsed += 3;
+
+    // Update phase status
+    while(phaseIdx < PHASES.length - 1 && elapsed >= PHASES[phaseIdx][0]){
+      phaseIdx++;
+    }
+    const [, title, sub, pct] = PHASES[phaseIdx];
+    setOcrStatus(title, sub, pct);
+
+    // Check if done
+    try {
+      const d = await fetch(`/api/book/${encodeURIComponent(bid)}`).then(r=>r.json());
+      if(d.text){
+        clearInterval(interval);
+        setOcrStatus('✅ הושלם!', '', 100);
+        await new Promise(r=>setTimeout(r,500));
+        renderTextReader(d.text, d.has_improved, bid);
+      }
+    } catch {}
+
+    // Timeout after 5 minutes
+    if(elapsed > 300){
+      clearInterval(interval);
+      $('vbody').innerHTML=`
+        <div style="padding:40px;text-align:center">
+          <div style="font-size:40px;margin-bottom:16px">⏱</div>
+          <div style="font-size:16px;font-weight:600;margin-bottom:8px">ה-OCR לוקח יותר זמן מהצפוי</div>
+          <div style="font-size:13px;color:var(--text3);margin-bottom:20px">הספר יהיה מוכן בקרוב ברקע</div>
+          <button onclick="fetchAndShowText('${bid}')" style="padding:8px 20px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue-lt);color:var(--blue);cursor:pointer;font-family:inherit;font-size:14px">🔄 בדוק שוב</button>
+        </div>`;
+    }
+  }, 3000);
+}
+
+function renderTextReader(text, hasImproved, bid){
+  bid = bid || S.bid;
+  hasImproved = hasImproved || false;
+  if(!text){
+    $('vbody').innerHTML=`
+      <div class="treader-toolbar">
+        <button class="ocr-trigger" onclick="triggerOCR('${S.bid}',this)">🔍 הפעל OCR לספר זה</button>
+        <span style="color:var(--text3);font-size:13px;margin-right:10px">OCR יהפוך את הסריקה לטקסט קריא (~2 דקות)</span>
+      </div>
+      <div class="treader"><div class="treader-content" style="text-align:center;color:var(--text3);padding-top:60px">
+        <div style="font-size:48px;margin-bottom:16px">🔍</div>
+        <div style="font-size:16px;margin-bottom:8px">טקסט לא זמין עדיין</div>
+        <div style="font-size:13px">לחץ "הפעל OCR" להמרה אוטומטית לטקסט קריא</div>
+      </div></div>`;
+    return;
+  }
+  $('vbody').innerHTML=`
+    <div class="treader-toolbar">
+      <span style="font-size:13px;color:var(--text3)">גודל גופן:</span>
+      <button class="fsize-btn" onclick="changeFontSize(-1)">א−</button>
+      <button class="fsize-btn" onclick="changeFontSize(1)">א+</button>
+      <span style="color:var(--border2)">|</span>
+      ${hasImproved
+        ? '<span style="font-size:12px;color:var(--green)">✨ שופר ע"י Claude</span>'
+        : `<button class="ocr-trigger" onclick="triggerImprove('${bid}',this)">✨ שפר עם Claude AI</button>`
+      }
+      <span style="color:var(--border2)">|</span>
+      <span style="font-size:12px;color:var(--green)">✓ טקסט זמין</span>
+    </div>
+    <div class="treader" id="treader">
+      <div class="treader-content" id="treader-content" style="font-size:${S.fs}px">${esc(text).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')}</div>
+    </div>`;
+}
+
+function changeFontSize(delta){
+  S.fs=Math.min(28,Math.max(13,S.fs+delta));
+  const el=$('treader-content');
+  if(el) el.style.fontSize=S.fs+'px';
+}
+
+function vDownload(){
+  if(!S.bid||S.bsource==='sefaria') return;
+  const num=S.bid.replace('hb-','');
+  window.open(`https://hebrewbooks.org/pdfs/${num}.pdf`,'_blank');
+}
+function vNewTab(){$('vNewBtn')&&$('vNewBtn').onclick&&$('vNewBtn').onclick();}
+
+function closeV(){
+  $('vov').classList.remove('open');
+  $('vbody').innerHTML='<iframe id="vframe" src=""></iframe>';
   document.body.style.overflow='';
 }
-function dlBook() {
-  if(!S.bid) return;
-  window.open(`https://hebrewbooks.org/pdfs/${S.bid}.pdf`,'_blank');
-}
-function newTab() {
-  if(!S.bid) return;
-  window.open(`https://hebrewbooks.org/pdfpager.aspx?req=${S.bid}`,'_blank');
+
+async function triggerImprove(bid, btn){
+  if(btn){ btn.textContent='⏳ Claude משפר...'; btn.disabled=true; btn.classList.add('ocr-running'); }
+  try{
+    await fetch(`/api/improve/${encodeURIComponent(bid)}`,{method:'POST'});
+    if(btn){ btn.textContent='✅ מתבצע ברקע!'; setTimeout(()=>{btn.textContent='✨ שפר עם Claude AI';btn.disabled=false;btn.classList.remove('ocr-running');},4000); }
+  }catch(e){
+    if(btn){ btn.textContent='✗ שגיאה'; btn.disabled=false; }
+  }
 }
 
-// ══ SEARCH EVENTS ══════════════════════════════════
+async function triggerOCR(bid, btn){
+  if(btn){
+    btn.textContent='⏳ מריץ OCR...';
+    btn.classList.add('ocr-running');
+    btn.disabled=true;
+  }
+  try{
+    const r=await fetch(`/api/ocr/${encodeURIComponent(bid)}`,{method:'POST'}).then(r=>r.json());
+    if(btn){
+      btn.textContent='✓ OCR התחיל!';
+      setTimeout(()=>{btn.textContent='🔍 OCR';btn.classList.remove('ocr-running');btn.disabled=false;},3000);
+    }
+  }catch(e){
+    if(btn){btn.textContent='✗ שגיאה';btn.disabled=false;}
+  }
+}
+
+// ══ SEARCH EVENTS ════════════════════════════════════
 let _st;
-$('q').addEventListener('input', e => {
+$('q').addEventListener('input',e=>{
   clearTimeout(_st);
-  const v = e.target.value.trim();
-  if (!v) { goHome(); return; }
-  S.q=v; S.page=1; S.mode='search'; S.subject='';
-  _st = setTimeout(loadSearch, 400);
+  const v=e.target.value.trim();
+  if(!v){goHome();return;}
+  S.q=v;S.page=1;S.mode='search';S.subj='';
+  _st=setTimeout(loadSearch,400);
 });
-$('q').addEventListener('keydown', e => {
-  if(e.key==='Enter') { clearTimeout(_st); S.q=e.target.value.trim(); S.page=1; loadSearch(); }
+$('q').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){clearTimeout(_st);S.q=e.target.value.trim();S.page=1;loadSearch();}
 });
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeV(); });
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeV();});
 
-// ══ BOOT ═══════════════════════════════════════════
+// ══ BOOT ════════════════════════════════════════════
 refreshStats();
-setInterval(refreshStats, 6000);
+setInterval(refreshStats,6000);
 goHome();
 </script>
 </body>
