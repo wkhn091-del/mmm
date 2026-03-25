@@ -294,6 +294,118 @@ main{grid-area:main;overflow-y:auto;padding:26px 28px 60px}
   transition:width .3s ease;
 }
 
+
+/* ── ADVANCED FEATURES PANEL ────────────────────── */
+.feat-panel{
+  display:flex;flex-direction:column;height:100%;
+  background:var(--surface);
+}
+.feat-tabs{
+  display:flex;gap:0;
+  border-bottom:2px solid var(--border);
+  background:var(--bg);
+  flex-shrink:0;overflow-x:auto;
+}
+.ft{
+  padding:10px 16px;border:none;background:none;
+  font-family:'Heebo',sans-serif;font-size:13px;
+  color:var(--text3);cursor:pointer;
+  border-bottom:2px solid transparent;
+  margin-bottom:-2px;white-space:nowrap;
+  transition:all .15s;
+}
+.ft:hover{color:var(--blue);background:var(--blue-lt)}
+.ft.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+
+.feat-body{flex:1;overflow-y:auto;padding:20px}
+
+/* search in book */
+.book-search-bar{
+  display:flex;gap:8px;margin-bottom:16px;
+}
+.book-search-bar input{
+  flex:1;padding:9px 14px;border:1.5px solid var(--border);
+  border-radius:8px;font-family:'Heebo',sans-serif;font-size:14px;
+  outline:none;direction:rtl;
+}
+.book-search-bar input:focus{border-color:var(--blue)}
+.book-search-bar button{
+  padding:9px 18px;border-radius:8px;border:none;
+  background:var(--blue);color:#fff;
+  font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;
+}
+
+.result-item{
+  padding:12px;border:1px solid var(--border);border-radius:8px;
+  margin-bottom:8px;cursor:pointer;transition:all .15s;
+}
+.result-item:hover{border-color:var(--blue);background:var(--blue-lt)}
+.result-highlight{background:#fef08a;padding:1px 3px;border-radius:3px}
+
+/* TOC */
+.toc-item{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;border-radius:7px;cursor:pointer;
+  transition:all .15s;font-family:'Noto Serif Hebrew',serif;
+  font-size:14px;color:var(--text2);
+}
+.toc-item:hover{background:var(--blue-lt);color:var(--blue)}
+.toc-num{
+  font-size:11px;color:var(--text4);
+  min-width:30px;text-align:left;
+}
+
+/* AI panel */
+.ai-textarea{
+  width:100%;min-height:100px;padding:12px;
+  border:1.5px solid var(--border);border-radius:8px;
+  font-family:'Noto Serif Hebrew',serif;font-size:14px;
+  line-height:1.8;resize:vertical;outline:none;direction:rtl;
+  margin-bottom:10px;
+}
+.ai-textarea:focus{border-color:var(--blue)}
+.ai-result{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:16px;
+  font-family:'Noto Serif Hebrew',serif;font-size:14px;
+  line-height:1.9;direction:rtl;white-space:pre-wrap;
+  min-height:80px;
+}
+.ai-btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.ai-btn{
+  padding:8px 16px;border-radius:8px;
+  border:1.5px solid var(--border);
+  background:var(--white);color:var(--text2);
+  font-family:'Heebo',sans-serif;font-size:13px;
+  cursor:pointer;transition:all .15s;
+}
+.ai-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+.ai-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.ai-btn.primary:hover{opacity:.85}
+
+/* related */
+.related-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:10px;
+}
+.rel-card{
+  padding:12px;border:1px solid var(--border);border-radius:8px;
+  cursor:pointer;transition:all .15s;text-align:right;
+}
+.rel-card:hover{border-color:var(--blue);background:var(--blue-lt)}
+.rel-title{font-family:'Noto Serif Hebrew',serif;font-size:13px;font-weight:700;margin-bottom:4px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rel-author{font-size:11px;color:var(--text3)}
+
+/* fulltext search */
+.fts-result{
+  padding:14px;border:1px solid var(--border);border-radius:8px;
+  margin-bottom:10px;cursor:pointer;transition:all .15s;
+}
+.fts-result:hover{border-color:var(--blue);background:var(--blue-lt)}
+.fts-book{font-weight:700;color:var(--text);margin-bottom:4px;font-size:14px}
+.fts-excerpt{font-size:13px;color:var(--text3);line-height:1.6;direction:rtl}
+
 </style>
 </head>
 <body>
@@ -317,6 +429,12 @@ main{grid-area:main;overflow-y:auto;padding:26px 28px 60px}
     <button class="nb" id="nb-text" onclick="goText()">
       <span class="ic">📝</span> ספרים עם טקסט
       <span class="bc" id="textCount">…</span>
+    </button>
+    <button class="nb" id="nb-fts" onclick="goFTS()">
+      <span class="ic">🔍</span> חיפוש בכל הטקסטים
+    </button>
+    <button class="nb" id="nb-daily" onclick="goDaily()">
+      <span class="ic">📅</span> לימוד יומי
     </button>
   </div>
 
@@ -398,9 +516,13 @@ main{grid-area:main;overflow-y:auto;padding:26px 28px 60px}
       <button class="vb cl" onclick="closeV()">✕</button>
     </div>
     <div class="vtabs" id="vtabs">
-      <button class="vtab on" id="vtab-pdf" onclick="switchTab('pdf')">📄 קריאת PDF</button>
-      <button class="vtab" id="vtab-text" onclick="switchTab('text')">📝 טקסט קריא</button>
-      <button class="vtab" id="vtab-flip" onclick="switchTab('flip')">📖 דפדוף ספר</button>
+      <button class="vtab on" id="vtab-pdf"  onclick="switchTab('pdf')">📄 קריאת PDF</button>
+      <button class="vtab"    id="vtab-text" onclick="switchTab('text')">📝 טקסט קריא</button>
+      <button class="vtab"    id="vtab-flip" onclick="switchTab('flip')">📖 דפדוף ספר</button>
+      <button class="vtab"    id="vtab-toc"  onclick="switchTab('toc')">📑 תוכן עניינים</button>
+      <button class="vtab"    id="vtab-search-book" onclick="switchTab('search-book')">🔍 חיפוש בספר</button>
+      <button class="vtab"    id="vtab-related" onclick="switchTab('related')">📚 ספרים קשורים</button>
+      <button class="vtab"    id="vtab-ai"   onclick="switchTab('ai')">🤖 AI — פרש/תרגם</button>
     </div>
     <div class="vbody" id="vbody">
       <iframe id="vframe" src=""></iframe>
@@ -716,6 +838,14 @@ function switchTab(tab, info, text, title){
     }
   } else if(tab==='flip'){
     fetchAndShowFlip(S.bid);
+  } else if(tab==='toc'){
+    showTOC(S.bid);
+  } else if(tab==='search-book'){
+    showSearchInBook(S.bid);
+  } else if(tab==='related'){
+    showRelated(S.bid);
+  } else if(tab==='ai'){
+    showAIPanel(S.bid, S.btitle);
   } else {
     fetchAndShowText(S.bid);
   }
@@ -1100,6 +1230,311 @@ document.addEventListener('keydown', e=>{
   if(e.key==='ArrowRight') flipPage(-1);
 });
 
+
+
+// ══ TOC — תוכן עניינים ═════════════════════════════
+async function showTOC(bid){
+  $('vbody').innerHTML='<div class="loader" style="height:100%"><div class="spin"></div><div>טוען תוכן עניינים...</div></div>';
+  try{
+    const d = await fetch(`/api/toc/${encodeURIComponent(bid)}`).then(r=>r.json());
+    if(!d.toc || !d.toc.length){
+      $('vbody').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📑</div><div>לא נמצא תוכן עניינים<br><small>הספר אינו מחולק לפרקים מזוהים</small></div></div>';
+      return;
+    }
+    const items = d.toc.map((item,i)=>`
+      <div class="toc-item" onclick="jumpToLine(${item.line})">
+        <span class="toc-num">${i+1}</span>
+        <span>${esc(item.text)}</span>
+      </div>`).join('');
+    $('vbody').innerHTML=`
+      <div class="feat-panel">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+          <div style="font-weight:700;font-size:15px">📑 תוכן עניינים</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${d.total} פרקים נמצאו</div>
+        </div>
+        <div class="feat-body">${items}</div>
+      </div>`;
+  }catch(e){
+    $('vbody').innerHTML=`<div style="padding:40px;text-align:center;color:var(--red)">שגיאה: ${e.message}</div>`;
+  }
+}
+
+function jumpToLine(line){
+  // Switch to text tab and scroll to line
+  switchTab('text');
+  setTimeout(()=>{
+    const el = $('treader-content');
+    if(!el) return;
+    const lines = el.querySelectorAll('p,br');
+    if(lines[line]) lines[line].scrollIntoView({behavior:'smooth',block:'center'});
+  }, 800);
+}
+
+// ══ SEARCH IN BOOK ══════════════════════════════════
+async function showSearchInBook(bid){
+  $('vbody').innerHTML=`
+    <div class="feat-panel">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+        <div style="font-weight:700;font-size:15px">🔍 חיפוש בתוך הספר</div>
+      </div>
+      <div class="feat-body">
+        <div class="book-search-bar">
+          <input id="bookSearchQ" type="text" placeholder="הקלד מילה לחיפוש בספר..." dir="rtl">
+          <button onclick="doBookSearch('${bid}')">חפש</button>
+        </div>
+        <div id="bookSearchResults"></div>
+      </div>
+    </div>`;
+  $('bookSearchQ').addEventListener('keydown', e=>{
+    if(e.key==='Enter') doBookSearch(bid);
+  });
+  $('bookSearchQ').focus();
+}
+
+async function doBookSearch(bid){
+  const q = $('bookSearchQ').value.trim();
+  if(!q) return;
+  const res = $('bookSearchResults');
+  res.innerHTML='<div class="loader"><div class="spin"></div></div>';
+  try{
+    const d = await fetch(`/api/search-in-book/${encodeURIComponent(bid)}?q=${encodeURIComponent(q)}`).then(r=>r.json());
+    if(!d.results.length){
+      res.innerHTML=`<div style="text-align:center;color:var(--text3);padding:30px">לא נמצאו תוצאות עבור "${esc(q)}"</div>`;
+      return;
+    }
+    res.innerHTML=`
+      <div style="font-size:13px;color:var(--text3);margin-bottom:12px">${d.total} תוצאות עבור "${esc(q)}"</div>
+      ${d.results.map(r=>`
+        <div class="result-item" onclick="switchTab('text')">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:4px">שורה ${r.line+1}</div>
+          <div style="font-size:14px;direction:rtl;line-height:1.6">${esc(r.context).replace(new RegExp(esc(q),'g'),`<span class="result-highlight">${esc(q)}</span>`)}</div>
+        </div>`).join('')}`;
+  }catch(e){
+    res.innerHTML=`<div style="color:var(--red);padding:20px">שגיאה: ${e.message}</div>`;
+  }
+}
+
+// ══ RELATED BOOKS ═══════════════════════════════════
+async function showRelated(bid){
+  $('vbody').innerHTML='<div class="loader" style="height:100%"><div class="spin"></div><div>טוען ספרים קשורים...</div></div>';
+  try{
+    const d = await fetch(`/api/related/${encodeURIComponent(bid)}`).then(r=>r.json());
+    if(!d.books.length){
+      $('vbody').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📚</div><div>לא נמצאו ספרים קשורים</div></div>';
+      return;
+    }
+    const cards = d.books.map(b=>`
+      <div class="rel-card" onclick="openBook('${b.id}','${esc(b.title).replace(/'/g,"\'")}','${b.source}','text')">
+        <div class="rel-title">${esc(b.title)}</div>
+        <div class="rel-author">${esc(b.author||'')}</div>
+        ${b.has_text?'<div style="font-size:10px;color:var(--green);margin-top:4px">✓ טקסט זמין</div>':''}
+      </div>`).join('');
+    $('vbody').innerHTML=`
+      <div class="feat-panel">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+          <div style="font-weight:700;font-size:15px">📚 ספרים קשורים</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${d.books.length} ספרים</div>
+        </div>
+        <div class="feat-body"><div class="related-grid">${cards}</div></div>
+      </div>`;
+  }catch(e){
+    $('vbody').innerHTML=`<div style="padding:40px;text-align:center;color:var(--red)">שגיאה</div>`;
+  }
+}
+
+// ══ AI PANEL — פרש, תרגם, הסבר ══════════════════════
+function showAIPanel(bid, title){
+  $('vbody').innerHTML=`
+    <div class="feat-panel">
+      <div class="feat-tabs">
+        <button class="ft on" id="ft-explain" onclick="setFeatTab('explain')">🧠 פירוש</button>
+        <button class="ft" id="ft-modern"  onclick="setFeatTab('modern')">📝 עברית מודרנית</button>
+        <button class="ft" id="ft-english" onclick="setFeatTab('english')">🌍 תרגום אנגלית</button>
+        <button class="ft" id="ft-fts"     onclick="setFeatTab('fts')">🔍 חיפוש בכל הספרים</button>
+      </div>
+      <div class="feat-body" id="featBody">
+        <div style="margin-bottom:12px;font-size:13px;color:var(--text3)">
+          הדבק קטע טקסט מהספר וקבל פירוש מ-Claude AI:
+        </div>
+        <textarea class="ai-textarea" id="aiPassage" placeholder="הדבק כאן קטע מהספר לפירוש..." dir="rtl"></textarea>
+        <div class="ai-btn-row">
+          <button class="ai-btn primary" onclick="runAI('explain','${bid}','${esc(title).replace(/'/g,"\'")}')">🧠 פרש לי</button>
+          <button class="ai-btn" onclick="pasteFromBook()">📋 הדבק מהטקסט</button>
+        </div>
+        <div id="aiResult" class="ai-result" style="display:none"></div>
+      </div>
+    </div>`;
+}
+
+function setFeatTab(tab){
+  document.querySelectorAll('.ft').forEach(b=>b.classList.remove('on'));
+  $('ft-'+tab) && $('ft-'+tab).classList.add('on');
+
+  const body = $('featBody');
+  if(tab==='fts'){
+    body.innerHTML=`
+      <div class="book-search-bar" style="margin-bottom:16px">
+        <input id="ftsQ" type="text" placeholder="חפש מילה בכל הספרים..." dir="rtl">
+        <button onclick="doFTS()">חפש</button>
+      </div>
+      <div id="ftsResults"></div>`;
+    $('ftsQ').addEventListener('keydown',e=>{if(e.key==='Enter')doFTS();});
+    return;
+  }
+
+  const labels = {
+    explain: {title:'🧠 פירוש', btn:'פרש לי', ph:'הדבק קטע לפירוש...'},
+    modern:  {title:'📝 עברית מודרנית', btn:'תרגם', ph:'הדבק קטע לתרגום לעברית מודרנית...'},
+    english: {title:'🌍 אנגלית', btn:'Translate', ph:'הדבק קטע לתרגום לאנגלית...'},
+  };
+  const l = labels[tab];
+  body.innerHTML=`
+    <div style="margin-bottom:12px;font-size:13px;color:var(--text3)">${l.title}:</div>
+    <textarea class="ai-textarea" id="aiPassage" placeholder="${l.ph}" dir="rtl"></textarea>
+    <div class="ai-btn-row">
+      <button class="ai-btn primary" onclick="runAI('${tab}','${S.bid}','${esc(S.btitle).replace(/'/g,"\'")}')">✨ ${l.btn}</button>
+    </div>
+    <div id="aiResult" class="ai-result" style="display:none"></div>`;
+}
+
+async function runAI(action, bid, title){
+  const passage = $('aiPassage') ? $('aiPassage').value.trim() : '';
+  if(!passage){alert('הדבק קטע טקסט קודם');return;}
+  const res = $('aiResult');
+  res.style.display='block';
+  res.textContent='⏳ Claude חושב...';
+
+  try{
+    let endpoint, body;
+    if(action==='explain'){
+      endpoint='/api/ai-explain';
+      body={text:passage,book:title};
+    } else {
+      endpoint='/api/ai-translate';
+      const targetMap={modern:'modern_hebrew',english:'english'};
+      body={text:passage,target:targetMap[action]||'modern_hebrew'};
+    }
+
+    const r = await fetch(endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    }).then(r=>r.json());
+
+    res.textContent = r.explanation || r.translation || r.error || 'שגיאה';
+  }catch(e){
+    res.textContent='שגיאה: '+e.message;
+  }
+}
+
+async function doFTS(){
+  const q = $('ftsQ').value.trim();
+  if(!q) return;
+  const res = $('ftsResults');
+  res.innerHTML='<div class="loader"><div class="spin"></div></div>';
+  try{
+    const d = await fetch(`/api/fulltext-search?q=${encodeURIComponent(q)}`).then(r=>r.json());
+    if(!d.results.length){
+      res.innerHTML=`<div style="text-align:center;color:var(--text3);padding:30px">לא נמצאו תוצאות</div>`;
+      return;
+    }
+    res.innerHTML=`
+      <div style="font-size:13px;color:var(--text3);margin-bottom:12px">${d.total} תוצאות</div>
+      ${d.results.map(r=>`
+        <div class="fts-result" onclick="openBook('${r.book_id}','${esc(r.title).replace(/'/g,"\'")}','${r.source||'hebrewbooks'}','text')">
+          <div class="fts-book">${esc(r.title)} ${r.author?'— '+esc(r.author):''}</div>
+          <div class="fts-excerpt">${esc(r.excerpt)}</div>
+        </div>`).join('')}`;
+  }catch(e){
+    res.innerHTML=`<div style="color:var(--red)">שגיאה</div>`;
+  }
+}
+
+function pasteFromBook(){
+  // Copy text from reader if open
+  const el = $('treader-content');
+  const sel = window.getSelection ? window.getSelection().toString() : '';
+  if(sel && $('aiPassage')){
+    $('aiPassage').value = sel;
+  } else if(el && $('aiPassage')){
+    $('aiPassage').value = el.innerText.slice(0,500);
+  }
+}
+
+
+
+async function goFTS(){
+  S.mode='fts'; setNav('nb-fts');
+  $('main').innerHTML=`
+    <div class="pgh"><div class="pgt">🔍 חיפוש בכל הטקסטים</div>
+    <div class="pgs">חפש מילה או ביטוי בכל הספרים שיש להם טקסט</div></div>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <input id="mainFTSQ" type="text" placeholder="חפש ביטוי בכל הספרים..." dir="rtl"
+        style="flex:1;padding:10px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:15px;outline:none"
+        onkeydown="if(event.key==='Enter')runFTS()">
+      <button onclick="runFTS()" style="padding:10px 24px;border-radius:10px;border:none;background:var(--blue);color:#fff;font-family:'Heebo',sans-serif;font-size:14px;cursor:pointer;font-weight:600">חפש</button>
+    </div>
+    <div id="mainFTSResults"></div>`;
+}
+
+async function runFTS(){
+  const q = $('mainFTSQ') ? $('mainFTSQ').value.trim() : '';
+  if(!q) return;
+  const res = $('mainFTSResults');
+  res.innerHTML='<div class="loader"><div class="spin"></div>מחפש...</div>';
+  try{
+    const d = await fetch(`/api/fulltext-search?q=${encodeURIComponent(q)}`).then(r=>r.json());
+    if(!d.results.length){
+      res.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">לא נמצאו תוצאות</div></div>';
+      return;
+    }
+    res.innerHTML=`
+      <div style="font-size:13px;color:var(--text3);margin-bottom:16px">${d.total.toLocaleString()} תוצאות עבור "${esc(q)}"</div>
+      ${d.results.map(r=>`
+        <div style="padding:14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer;transition:all .15s"
+          onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'"
+          onclick="openBook('${r.book_id}','${esc(r.title).replace(/'/g,"\'")}','${r.source||''}','text')">
+          <div style="font-weight:700;font-size:15px;font-family:'Noto Serif Hebrew',serif;margin-bottom:4px">${esc(r.title)}</div>
+          ${r.author?`<div style="font-size:12px;color:var(--text3);margin-bottom:8px">${esc(r.author)}</div>`:''}
+          <div style="font-size:13px;color:var(--text2);line-height:1.7;direction:rtl">${esc(r.excerpt)}</div>
+        </div>`).join('')}`;
+  }catch(e){
+    res.innerHTML=`<div style="color:var(--red);padding:20px">שגיאה</div>`;
+  }
+}
+
+async function goDaily(){
+  S.mode='daily'; setNav('nb-daily');
+  $('main').innerHTML='<div class="loader"><div class="spin"></div>טוען לימוד יומי...</div>';
+  try{
+    const d = await fetch('/api/daily').then(r=>r.json());
+    if(d.error){$('main').innerHTML='<div class="empty"><div class="empty-icon">📭</div><div>אין ספרים עם טקסט עדיין</div></div>';return;}
+    $('main').innerHTML=`
+      <div class="pgh">
+        <div class="pgt">📅 לימוד יומי — ${d.date}</div>
+        <div class="pgs">ספר אקראי לקריאה יומית</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px">
+        <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:20px 24px">
+          <div style="font-family:'Noto Serif Hebrew',serif;font-size:22px;font-weight:900;color:#fff">${esc(d.book.title)}</div>
+          ${d.book.author?`<div style="color:rgba(255,255,255,.7);margin-top:4px">${esc(d.book.author)}</div>`:''}
+        </div>
+        <div style="padding:24px;font-family:'Noto Serif Hebrew',serif;font-size:16px;line-height:2;direction:rtl;white-space:pre-wrap">${esc(d.excerpt)}</div>
+        <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px">
+          <button onclick="openBook('${d.book.id}','${esc(d.book.title).replace(/'/g,"\'")}','${d.book.source}','text')"
+            style="padding:10px 24px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-family:'Heebo',sans-serif;font-size:14px;cursor:pointer;font-weight:600">
+            📖 קרא את הספר המלא
+          </button>
+          <button onclick="goDaily()"
+            style="padding:10px 24px;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-family:'Heebo',sans-serif;font-size:14px;cursor:pointer">
+            🔄 ספר אחר
+          </button>
+        </div>
+      </div>`;
+  }catch(e){
+    $('main').innerHTML=`<div style="color:var(--red);padding:40px;text-align:center">שגיאה</div>`;
+  }
+}
 
 // ══ BOOT ════════════════════════════════════════════
 refreshStats();
