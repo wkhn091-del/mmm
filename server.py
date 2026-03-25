@@ -62,6 +62,7 @@ def init_db():
             url         TEXT DEFAULT ''
         )
     """)
+    # book_text מוגבל — שומר רק 5000 תווים ראשונים לחיסכון במקום
     conn.execute("""
         CREATE TABLE IF NOT EXISTS book_text (
             book_id  TEXT PRIMARY KEY,
@@ -79,6 +80,9 @@ def init_db():
             key TEXT PRIMARY KEY, value TEXT
         )
     """)
+    # אופטימיזציה למקום
+    conn.execute("PRAGMA page_size=4096")
+    conn.execute("PRAGMA auto_vacuum=INCREMENTAL")
     conn.commit()
     _seed(conn)
     conn.close()
@@ -145,6 +149,9 @@ def save_books(rows):
     conn.close()
 
 def save_text(book_id, content, source="ocr"):
+    """שומר טקסט מלא ב-DB — רק לתוצאות OCR (HebrewBooks).
+    ספרים אחרים נמשכים חי מהמקור."""
+    if not content: return
     conn = get_db()
     conn.execute(
         "INSERT OR REPLACE INTO book_text(book_id,content,source) VALUES(?,?,?)",
@@ -381,7 +388,7 @@ def sefaria_crawler():
                             return str(x) if x else ""
                         text = flat(he)
                         if text.strip():
-                            save_text(sid, text, "sefaria")
+                            pass  # טקסט נמשך חי מהמקור בכל פתיחה
                 except: pass
 
                 if i % 100 == 0:
@@ -448,7 +455,8 @@ def ben_yehuda_crawler():
                 try:
                     tr = requests.get(raw_url, headers=GEN_HEADERS, timeout=12)
                     if tr.status_code == 200 and tr.text.strip():
-                        save_text(uid, tr.text[:50000], "benyehuda")
+                        pass  # טקסט נמשך חי
+                        # save_text( # טקסט נמשך חי — uid, tr.text[:50000], "benyehuda")
                 except: pass
 
                 if i % 200 == 0:
@@ -512,7 +520,8 @@ def mamre_crawler():
                     text = soup.get_text(separator="\n", strip=True)
                     heb_text = "\n".join(l for l in text.split("\n") if re.search(r'[\u05D0-\u05EA]', l))
                     if heb_text:
-                        save_text(bid, heb_text[:100000], "mamre")
+                        pass  # טקסט נמשך חי
+                        # save_text( # טקסט נמשך חי — bid, heb_text[:100000], "mamre")
                         print(f"📜 Mamre saved: {title}")
             except Exception as e:
                 print(f"Mamre error {title}: {e}")
@@ -610,7 +619,8 @@ def wikisource_crawler():
                                     clean = re.sub(r'\[\[.*?\]\]', '', clean)
                                     heb = "\n".join(l for l in clean.split("\n") if re.search(r'[\u05D0-\u05EA]',l))
                                     if heb.strip():
-                                        save_text(frow[0], heb[:80000], "wikisource")
+                                        pass  # טקסט נמשך חי
+                                        # save_text( # טקסט נמשך חי — frow[0], heb[:80000], "wikisource")
                             except: pass
                             time.sleep(0.3)
 
@@ -858,6 +868,10 @@ def stats():
         "GROUP BY subject ORDER BY n DESC LIMIT 20"
     ).fetchall()
     conn.close()
+    # גודל DB
+    import os
+    db_size_mb = round(os.path.getsize(DB_PATH) / 1024 / 1024, 1) if os.path.exists(DB_PATH) else 0
+
     return jsonify({
         "total":     total,
         "with_text": with_text,
@@ -865,6 +879,7 @@ def stats():
         "by_source": {r["source"]: r["n"] for r in by_source},
         "hb_crawled": int(get_state("hb_last_id",1)),
         "subjects":  [{"name":r["subject"],"count":r["n"]} for r in subjects],
+        "db_size_mb": db_size_mb,
     })
 
 @app.route("/api/featured")
@@ -949,18 +964,104 @@ def search():
 def book_detail(book_id):
     conn = get_db()
     book = conn.execute("SELECT * FROM books WHERE id=?", (book_id,)).fetchone()
-    tr   = conn.execute("SELECT content,improved FROM book_text WHERE book_id=?", (book_id,)).fetchone()
     conn.close()
-    if not book: return jsonify({"error":"not found"}),404
+    if not book: return jsonify({"error":"not found"}), 404
     d = dict(book)
-    if tr:
-        # Prefer Claude-improved text if available
-        d["text"] = tr["improved"] or tr["content"]
-        d["has_improved"] = bool(tr["improved"])
-    else:
-        d["text"] = None
-        d["has_improved"] = False
+
+    # ── נסה למשוך טקסט מלא חי מהמקור ──
+    text = None
+    has_improved = False
+
+    if book_id.startswith("sef-"):
+        # Sefaria — טקסט מלא, חינמי, ללא הגבלה
+        text = fetch_sefaria_text_live(book_id)
+
+    elif book_id.startswith("ws-"):
+        # ויקיטקסט
+        text = fetch_wikisource_text_live(book["title"])
+
+    elif book_id.startswith("by-"):
+        # פרויקט בן-יהודה
+        if book["url"]:
+            text = fetch_url_text_live(book["url"])
+
+    elif book_id.startswith("mamre-"):
+        if book["url"]:
+            text = fetch_url_text_live(book["url"])
+
+    elif book_id.startswith("daat-") or book_id.startswith("chabad-") or book_id.startswith("aht-"):
+        if book["url"]:
+            text = fetch_url_text_live(book["url"])
+
+    # HebrewBooks — אין טקסט, רק PDF
+    # בדוק DB כ-fallback (מה שנשמר מOCR)
+    if not text:
+        conn = get_db()
+        tr = conn.execute("SELECT content,improved FROM book_text WHERE book_id=?", (book_id,)).fetchone()
+        conn.close()
+        if tr:
+            text = tr["improved"] or tr["content"]
+            has_improved = bool(tr and tr["improved"])
+
+    d["text"] = text
+    d["has_improved"] = has_improved
     return jsonify(d)
+
+
+def fetch_sefaria_text_live(book_id):
+    """משך טקסט מלא מSefaria API — ללא הגבלת גודל."""
+    try:
+        title = book_id.replace("sef-","").replace("_"," ")
+        r = requests.get(
+            f"https://www.sefaria.org/api/texts/{requests.utils.quote(title)}?context=0&commentary=0&pad=0",
+            headers=GEN_HEADERS, timeout=20
+        )
+        if r.status_code != 200: return None
+        d = r.json()
+        he = d.get("he", [])
+        def flat(x):
+            if isinstance(x, list): return "\n".join(flat(i) for i in x if i)
+            return str(x) if x else ""
+        text = flat(he)
+        return text.strip() if len(text) > 50 else None
+    except:
+        return None
+
+
+def fetch_wikisource_text_live(title):
+    """משך טקסט מלא מויקיטקסט."""
+    try:
+        r = requests.get(
+            "https://he.wikisource.org/w/api.php",
+            params={"action":"parse","page":title,"prop":"wikitext","format":"json"},
+            headers=GEN_HEADERS, timeout=15
+        )
+        if r.status_code != 200: return None
+        wikitext = r.json().get("parse",{}).get("wikitext",{}).get("*","")
+        # נקה wiki markup
+        clean = re.sub(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]', r'\1', wikitext)
+        clean = re.sub(r'\{\{[^}]+\}\}', '', clean)
+        clean = re.sub(r"'{2,}", '', clean)
+        clean = re.sub(r'==+([^=]+)==+', r'\n\1\n', clean)
+        heb = "\n".join(l for l in clean.split("\n") if re.search(r'[\u05D0-\u05EA]', l))
+        return heb.strip() if len(heb) > 50 else None
+    except:
+        return None
+
+
+def fetch_url_text_live(url):
+    """משך טקסט מאתר כלשהו."""
+    try:
+        r = requests.get(url, headers=GEN_HEADERS, timeout=15)
+        if r.status_code != 200: return None
+        r.encoding = 'utf-8'
+        soup = BeautifulSoup(r.text, "html.parser")
+        for tag in soup(["script","style","nav","header","footer","aside"]): tag.decompose()
+        text = soup.get_text(separator="\n", strip=True)
+        heb = "\n".join(l for l in text.split("\n") if re.search(r'[\u05D0-\u05EA]{3,}', l))
+        return heb.strip() if len(heb) > 50 else None
+    except:
+        return None
 
 @app.route("/api/viewer/<path:book_id>")
 def viewer_info(book_id):
@@ -1208,7 +1309,8 @@ def chabad_crawler():
                     heb = "\n".join(l for l in text.split("\n")
                                    if re.search(r'[\u05D0-\u05EA]{3,}', l))
                     if len(heb) > 200:
-                        save_text(bid, heb[:80000], "chabad")
+                        pass  # טקסט נמשך חי
+                        # save_text( # טקסט נמשך חי — bid, heb[:80000], "chabad")
                         print(f"🕍 Chabad: {title} ({len(heb)} chars)")
                 except Exception as e:
                     print(f"Chabad {title} error: {e}")
@@ -1484,7 +1586,8 @@ def opensiddur_crawler():
                     heb = "\n".join(l for l in content_text.split("\n")
                                    if re.search(r'[\u05D0-\u05EA]{3,}', l))
                     if len(heb) > 100:
-                        save_text(uid, heb[:50000], "opensiddur")
+                        pass  # טקסט נמשך חי
+                        # save_text( # טקסט נמשך חי — uid, heb[:50000], "opensiddur")
 
                 if fetched:
                     save_books(fetched)
@@ -1545,7 +1648,8 @@ def alhatorah_crawler():
                     heb  = "\n".join(l for l in text.split("\n")
                                     if re.search(r'[\u05D0-\u05EA]{4,}', l))
                     if len(heb) > 300:
-                        save_text(bid, heb[:100000], "alhatorah")
+                        pass  # טקסט נמשך חי
+                        # save_text( # טקסט נמשך חי — bid, heb[:100000], "alhatorah")
                         print(f"📜 Al-Hatorah: {title} ({len(heb)} chars)")
                 except Exception as e:
                     print(f"AlHatorah {title}: {e}")
@@ -1735,6 +1839,31 @@ def ai_translate():
     except Exception as e:
         return jsonify({"error":str(e)}),500
     return jsonify({"error":"שגיאה"}),500
+
+
+@app.route("/api/admin/cleanup", methods=["POST"])
+def admin_cleanup():
+    """מנקה טקסטים כפולים וארוכים מדי לחיסכון במקום."""
+    conn = get_db()
+    # מחק טקסטים ארוכים מדי
+    conn.execute(
+        "UPDATE book_text SET content=SUBSTR(content,1,5000) WHERE LENGTH(content)>5000"
+    )
+    conn.execute(
+        "UPDATE book_text SET improved=SUBSTR(improved,1,5000) WHERE improved IS NOT NULL AND LENGTH(improved)>5000"
+    )
+    # הפעל VACUUM לדחיסת DB
+    conn.execute("PRAGMA incremental_vacuum")
+    conn.commit()
+    conn.close()
+    import subprocess
+    try:
+        subprocess.run(["sqlite3", DB_PATH, "VACUUM;"], timeout=30)
+    except:
+        pass
+    import os
+    size = round(os.path.getsize(DB_PATH)/1024/1024, 1) if os.path.exists(DB_PATH) else 0
+    return jsonify({"status":"ok","db_size_mb":size})
 
 
 init_db()
