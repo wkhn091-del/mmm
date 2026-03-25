@@ -704,269 +704,14 @@ def daat_crawler():
 #  שלב 4: שיפור Claude (תיקון שגיאות 50%+)
 # ═══════════════════════════════════════════════════
 
-# ── שלב 1: שיפור תמונה ──────────────────────────────
-def enhance_image(img):
-    """
-    פונקציה חכמה לשיפור תמונה לפני OCR.
-    מטפלת ב: מטושטש, כהה, נטוי, רעש, ניגוד נמוך.
-    """
-    import numpy as np
-    from PIL import ImageFilter, ImageEnhance, ImageOps
+# ═══════════════════════════════════════════════════
+#  OCR — Claude Vision (ללא Tesseract!)
+# ═══════════════════════════════════════════════════
 
-    # המר ל-grayscale
-    img = img.convert("L")
-    arr = np.array(img)
-
-    # ── זיהוי בעיות אוטומטי ──
-    mean_brightness = arr.mean()
-    std_contrast    = arr.std()
-    is_dark    = mean_brightness < 100
-    is_bright  = mean_brightness > 200
-    is_low_contrast = std_contrast < 40
-    is_blurry  = _measure_blur(arr) < 50
-
-    print(f"    📊 brightness={mean_brightness:.0f} contrast={std_contrast:.0f} "
-          f"blur={'yes' if is_blurry else 'no'} dark={'yes' if is_dark else 'no'}")
-
-    # ── תיקון הטיה (deskew) ──
-    img = _deskew(img)
-    arr = np.array(img)
-
-    # ── נורמליזציה של בהירות ──
-    if is_dark or is_bright:
-        img = ImageOps.autocontrast(img, cutoff=2)
-
-    # ── שיפור ניגוד ──
-    if is_low_contrast:
-        # CLAHE-like: חלק לאזורים ושפר כל אחד
-        img = _local_contrast(img)
-    else:
-        enhancer = ImageEnhance.Contrast(img)
-        img = enhancer.enhance(1.8)
-
-    # ── הסרת רעש ──
-    img = img.filter(ImageFilter.MedianFilter(size=3))
-
-    # ── חידוד לOCR ──
-    if is_blurry:
-        # חידוד חזק לדפים מטושטשים
-        img = img.filter(ImageFilter.UnsharpMask(radius=2, percent=180, threshold=2))
-        img = img.filter(ImageFilter.SHARPEN)
-        img = img.filter(ImageFilter.SHARPEN)
-    else:
-        img = img.filter(ImageFilter.SHARPEN)
-
-    # ── Binarization (שחור-לבן נקי) ──
-    # Otsu threshold
-    arr2 = np.array(img)
-    threshold = _otsu_threshold(arr2)
-    binary = (arr2 > threshold).astype(np.uint8) * 255
-    from PIL import Image as PILImage
-    img = PILImage.fromarray(binary)
-
-    # Scale up for better OCR
-    w, h = img.size
-    img = img.resize((w*2, h*2), PILImage.LANCZOS)
-
-    return img
-
-def _measure_blur(arr):
-    """Laplacian variance — מדד חדות."""
-    import numpy as np
-    kernel = np.array([[0,-1,0],[-1,4,-1],[0,-1,0]], dtype=np.float32)
-    from scipy.signal import convolve2d
+def ocr_page_with_claude_b64(b64_data, media_type="image/jpeg"):
+    if not ANTHROPIC_KEY:
+        return None
     try:
-        conv = convolve2d(arr.astype(np.float32), kernel, mode='valid')
-        return conv.var()
-    except:
-        return 100  # assume OK if scipy not available
-
-def _otsu_threshold(arr):
-    """חישוב סף אוטומטי לבינריזציה."""
-    import numpy as np
-    hist, bins = np.histogram(arr.flatten(), 256, [0,256])
-    hist = hist.astype(float)
-    total = hist.sum()
-    best, best_thresh = 0, 128
-    cumsum = cumvar = 0
-    for t in range(256):
-        cumsum += hist[t]
-        if cumsum == 0: continue
-        if cumsum == total: break
-        cumvar += t * hist[t]
-        mean_b = cumvar / cumsum
-        mean_f = (cumvar + sum(i*hist[i] for i in range(t+1,256))) / (total - cumsum + 1e-9)
-        w_b = cumsum / total
-        w_f = 1 - w_b
-        between = w_b * w_f * (mean_b - mean_f) ** 2
-        if between > best:
-            best = between
-            best_thresh = t
-    return best_thresh
-
-def _deskew(img):
-    """תיקון הטיה של עמוד."""
-    try:
-        import numpy as np
-        from PIL import Image as PILImage
-        arr = np.array(img)
-        # Simple horizontal projection to detect skew
-        angles = range(-5, 6)
-        best_angle, best_score = 0, 0
-        for angle in angles:
-            rotated = img.rotate(angle, expand=False, fillcolor=255)
-            arr_r = np.array(rotated)
-            # Score = variance of row sums (text lines = high variance)
-            row_sums = arr_r.sum(axis=1)
-            score = row_sums.var()
-            if score > best_score:
-                best_score = score
-                best_angle = angle
-        if best_angle != 0:
-            img = img.rotate(best_angle, expand=False, fillcolor=255)
-            print(f"    📐 Deskewed: {best_angle}°")
-    except:
-        pass
-    return img
-
-def _local_contrast(img):
-    """שיפור ניגוד מקומי לדפים בעייתיים."""
-    try:
-        import numpy as np
-        from PIL import Image as PILImage
-        arr = np.array(img, dtype=np.float32)
-        h, w = arr.shape
-        tile = 64  # tile size
-        result = arr.copy()
-        for y in range(0, h, tile):
-            for x in range(0, w, tile):
-                patch = arr[y:y+tile, x:x+tile]
-                mn, mx = patch.min(), patch.max()
-                if mx > mn:
-                    result[y:y+tile, x:x+tile] = (patch - mn) / (mx - mn) * 255
-        return PILImage.fromarray(result.astype(np.uint8))
-    except:
-        return img
-
-# ── שלב 2: זיהוי סוג כתב ────────────────────────────
-def detect_script_type(img):
-    """
-    מנסה לזהות אם הדף מכיל כתב רש"י או דפוס רגיל.
-    רש"י = קווים עגולים ומסולסלים, דפוס = זוויתי.
-    """
-    try:
-        import numpy as np
-        arr = np.array(img.convert("L"))
-        # בינריזציה פשוטה
-        binary = arr < 128
-        # מדידת עקמומיות — רש"י יש לו יותר עקמומיות
-        from PIL import ImageFilter
-        edges = img.filter(ImageFilter.FIND_EDGES)
-        edge_arr = np.array(edges.convert("L"))
-        curvature = edge_arr.mean()
-        return "rashi" if curvature > 15 else "print"
-    except:
-        return "print"
-
-# ── שלב 3א: Dicta OCR (לכתב רש"י ועברית ישנה) ────────
-def ocr_with_dicta(img_bytes, title=""):
-    """
-    Dicta OCR API מהאוניברסיטה העברית.
-    מיועד לעברית קלאסית, כתב רש"י, ניקוד עתיק.
-    """
-    try:
-        import base64
-        img_b64 = base64.b64encode(img_bytes).decode()
-
-        r = requests.post(
-            "https://ocr.dicta.org.il/api/ocr",
-            json={
-                "img": img_b64,
-                "lang": "heb",
-                "mode": "historical",   # מצב היסטורי — מזהה רש"י וניקוד
-            },
-            headers={"Content-Type": "application/json"},
-            timeout=30
-        )
-        if r.status_code == 200:
-            data = r.json()
-            text = data.get("text", "") or data.get("result", "")
-            if text and len(text.strip()) > 20:
-                print(f"    ✅ Dicta OCR success ({len(text)} chars)")
-                return text
-    except Exception as e:
-        print(f"    ⚠️ Dicta error: {e}")
-    return None
-
-# ── שלב 3ב: Tesseract מתקדם ──────────────────────────
-def ocr_with_tesseract(img, script_type="print"):
-    """
-    Tesseract עם הגדרות שונות לפי סוג הכתב.
-    """
-    try:
-        import pytesseract
-
-        configs = {
-            "print": "--psm 6 --oem 3 -c tessedit_char_whitelist=אבגדהוזחטיכלמנסעפצקרשתךםןףץ ",
-            "rashi": "--psm 6 --oem 3",
-            "column":"--psm 4 --oem 3",  # עמודות (גמרא)
-        }
-        cfg = configs.get(script_type, configs["print"])
-        text = pytesseract.image_to_string(img, lang="heb", config=cfg)
-
-        # מדוד איכות — כמה % אותיות עבריות
-        heb_chars = len(re.findall(r'[\u05D0-\u05EA]', text))
-        total_chars = len(re.sub(r'\s', '', text))
-        quality = heb_chars / max(total_chars, 1)
-
-        print(f"    📊 Tesseract quality: {quality:.0%} ({heb_chars} heb chars)")
-        return text, quality
-
-    except ImportError:
-        return "", 0
-    except Exception as e:
-        print(f"    ⚠️ Tesseract error: {e}")
-        return "", 0
-
-# ── שלב 4: Claude — תיקון שגיאות כבדות (50%+) ────────
-def claude_fix_heavy(raw_text, title="", quality=1.0):
-    """
-    שולח לClaude טקסט עם שגיאות כבדות לתיקון מעמיק.
-    משמש כשאיכות OCR < 60%.
-    """
-    if not ANTHROPIC_KEY or not raw_text:
-        return raw_text
-
-    try:
-        sample = raw_text[:4000]
-
-        # הוראות שונות לפי רמת השגיאות
-        if quality < 0.3:
-            system_prompt = (
-                "אתה מומחה לשחזור כתבי יד ודפוסים עבריים עתיקים. "
-                "קיבלת טקסט עם שגיאות OCR חמורות מאוד (מעל 70%). "
-                "עליך: לזהות מילים מוכרות מתוך הרעש, לשחזר ניסוחים הלכתיים/תלמודיים, "
-                "להשלים ביטויים חסרים לפי הקשר. "
-                "השתמש בידע שלך על לשון הקודש. "
-                "סמן קטעים שלא הצלחת לשחזר ב[?]. "
-                "החזר רק את הטקסט המשוחזר."
-            )
-        elif quality < 0.6:
-            system_prompt = (
-                "אתה עורך מומחה של טקסטים יהודיים קלאסיים. "
-                "קיבלת טקסט עם שגיאות OCR רבות (50-70%). "
-                "תקן: אותיות הפוכות (ר↔ד, ו↔ז, ה↔ח), "
-                "מילים שנשברו, קיצורים שבורים (ז ל → ז\"ל), "
-                "עמודות שהתערבבו. שמור על לשון המקור. "
-                "החזר רק את הטקסט המתוקן."
-            )
-        else:
-            system_prompt = (
-                "אתה עורך טקסטים יהודיים. תקן שגיאות OCR קלות, "
-                "אחד מילים שנשברו, הוסף פסקאות. שמור לשון המקור. "
-                "החזר רק את הטקסט המתוקן."
-            )
-
         r = requests.post(
             "https://api.anthropic.com/v1/messages",
             headers={
@@ -976,161 +721,107 @@ def claude_fix_heavy(raw_text, title="", quality=1.0):
             },
             json={
                 "model": "claude-haiku-4-5-20251001",
-                "max_tokens": 4096,
-                "system": system_prompt,
-                "messages": [{
-                    "role": "user",
-                    "content": f"ספר: {title}\nאיכות OCR: {quality:.0%}\n\nטקסט:\n{sample}"
-                }]
+                "max_tokens": 2000,
+                "system": (
+                    "אתה מומחה לקריאת טקסטים עבריים עתיקים. "
+                    "קרא את כל הטקסט העברי בתמונה בדיוק מרבי. "
+                    "כלול ניקוד וכתב רשי. "
+                    "אל תוסיף הסברים - רק הטקסט עצמו."
+                ),
+                "messages": [{"role": "user", "content": [
+                    {"type": "image", "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": b64_data
+                    }},
+                    {"type": "text", "text": "קרא את הטקסט העברי:"}
+                ]}]
             },
-            timeout=40
+            timeout=45
         )
-
         if r.status_code == 200:
-            improved = r.json()["content"][0]["text"]
-            # Append un-improved rest
-            if len(raw_text) > 4000:
-                improved += "\n\n" + raw_text[4000:]
-            print(f"    ✨ Claude fixed (quality was {quality:.0%})")
-            return improved
-
+            text = r.json()["content"][0]["text"].strip()
+            if len(re.findall(r'[\u05D0-\u05EA]', text)) > 10:
+                return text
     except Exception as e:
-        print(f"    ⚠️ Claude fix error: {e}")
+        print(f"Claude Vision error: {e}")
+    return None
 
-    return raw_text
 
-# ── MAIN OCR RUNNER ──────────────────────────────────
 def run_ocr(book_id, numeric_id):
-    """
-    Pipeline מלא:
-    PDF → תמונות → שיפור תמונה → זיהוי כתב →
-    Dicta (רש"י) / Tesseract (שאר) → Claude (אם צריך)
-    """
-    try:
-        from pdf2image import convert_from_bytes
-        from PIL import Image as PILImage
-        import io
-
-        print(f"🔍 OCR starting: {book_id}")
-
-        # הורד PDF
-        pdf_url = f"https://hebrewbooks.org/pdfs/{numeric_id}.pdf"
-        r = requests.get(pdf_url, headers=HB_HEADERS, timeout=60, stream=True)
-        if r.status_code != 200:
-            print(f"  ❌ PDF not found: {pdf_url}")
-            return False
-        pdf_bytes = r.content
-        if len(pdf_bytes) < 1000:
-            return False
-
-        # PDF → תמונות (300 DPI לאיכות טובה)
-        try:
-            images = convert_from_bytes(pdf_bytes, dpi=300, first_page=1, last_page=30)
-        except Exception as e:
-            print(f"  ❌ PDF convert error: {e}")
-            return False
-
-        print(f"  📄 {len(images)} pages")
-
-        all_pages   = []
-        total_quality = 0
-        use_dicta   = False
-
-        for page_num, img in enumerate(images):
-            print(f"  📄 Page {page_num+1}/{len(images)}")
-
-            # שלב 1: שיפור תמונה
-            enhanced = enhance_image(img)
-
-            # שלב 2: זיהוי סוג כתב (על דף ראשון בלבד)
-            if page_num == 0:
-                script_type = detect_script_type(enhanced)
-                use_dicta   = (script_type == "rashi")
-                print(f"  📝 Script type: {script_type}")
-
-            # שלב 3: OCR
-            page_text = None
-            quality   = 0
-
-            # נסה Dicta קודם לרש"י
-            if use_dicta:
-                img_bytes_io = io.BytesIO()
-                enhanced.save(img_bytes_io, format="PNG")
-                page_text = ocr_with_dicta(img_bytes_io.getvalue())
-                if page_text:
-                    quality = len(re.findall(r'[\u05D0-\u05EA]', page_text)) / max(len(page_text.replace(' ','')), 1)
-
-            # Tesseract כ-fallback (או לדפוס רגיל)
-            if not page_text or quality < 0.4:
-                cfg = "column" if len(images) > 50 else ("rashi" if use_dicta else "print")
-                ts_text, ts_quality = ocr_with_tesseract(enhanced, cfg)
-
-                # קח את הטוב יותר
-                if ts_quality > quality:
-                    page_text = ts_text
-                    quality   = ts_quality
-
-            if page_text and page_text.strip():
-                all_pages.append((page_text, quality))
-                total_quality += quality
-
-        if not all_pages:
-            print(f"  ❌ No text extracted")
-            return False
-
-        # חשב איכות ממוצעת
-        avg_quality = total_quality / len(all_pages)
-        print(f"  📊 Average quality: {avg_quality:.0%}")
-
-        # שרשר טקסט גולמי
-        raw_text = "\n\n---\n\n".join(t for t, q in all_pages)
-
-        # ניקוי בסיסי
-        raw_text = re.sub(r'[^\u05D0-\u05EA\u05B0-\u05C7\s\.\,\:\;\!\?\"\'\(\)\-\n0-9]', '', raw_text)
-        raw_text = re.sub(r'\n{4,}', '\n\n', raw_text)
-        raw_text = re.sub(r' {2,}', ' ', raw_text)
-
-        # שלב 4: Claude — אם איכות נמוכה
-        final_text = raw_text
-        book_quality_flag = "good"
-
-        if avg_quality < 0.6 and ANTHROPIC_KEY:
-            print(f"  ✨ Quality {avg_quality:.0%} — sending to Claude for heavy fix")
-            final_text = claude_fix_heavy(raw_text, book_id, avg_quality)
-            book_quality_flag = "claude_fixed"
-        elif avg_quality < 0.8 and ANTHROPIC_KEY:
-            print(f"  ✨ Quality {avg_quality:.0%} — sending to Claude for light fix")
-            final_text = improve_text_with_claude(raw_text, book_id)
-            book_quality_flag = "claude_improved"
-
-        # שמור לDB
-        save_text(book_id, final_text, f"ocr_{book_quality_flag}")
+    import base64
+    if not ANTHROPIC_KEY:
         conn = get_db()
-        conn.execute(
-            "UPDATE books SET has_ocr=1, ocr_improved=? WHERE id=?",
-            (1 if book_quality_flag != "good" else 0, book_id)
-        )
-        conn.commit()
-        conn.close()
-
-        print(f"  ✅ OCR done: {book_id} | quality={avg_quality:.0%} | {len(final_text)} chars | {book_quality_flag}")
-        return True
-
-    except ImportError as e:
-        print(f"  ❌ Missing library: {e}")
+        conn.execute("UPDATE books SET has_ocr=1 WHERE id=?", (book_id,))
+        conn.commit(); conn.close()
         return False
-    except Exception as e:
-        print(f"  ❌ OCR error {book_id}: {e}")
+
+    print(f"🔍 Claude Vision OCR: {book_id}")
+    all_pages = []
+
+    for page_num in range(1, 21):
+        img_url = f"https://hebrewbooks.org/pagefinder.aspx?req={numeric_id}&pgnum={page_num}&zoom=0"
+        try:
+            r = requests.get(img_url, headers=HB_HEADERS, timeout=20)
+            if r.status_code != 200:
+                break
+            ct = r.headers.get("Content-Type", "")
+            if "image" not in ct:
+                if page_num > 2:
+                    break
+                continue
+
+            b64 = base64.b64encode(r.content).decode()
+            media_type = ct.split(";")[0].strip()
+            if not media_type.startswith("image/"):
+                media_type = "image/jpeg"
+
+            page_text = ocr_page_with_claude_b64(b64, media_type)
+            if page_text and len(page_text.strip()) > 20:
+                all_pages.append(page_text.strip())
+                print(f"  ✅ Page {page_num}: {len(page_text)} chars")
+            else:
+                if page_num > 3 and not all_pages:
+                    break
+        except Exception as e:
+            print(f"  Page {page_num} error: {e}")
+            if page_num > 2:
+                break
+        time.sleep(1)
+
+    if not all_pages:
+        conn = get_db()
+        conn.execute("UPDATE books SET has_ocr=1 WHERE id=?", (book_id,))
+        conn.commit(); conn.close()
         return False
+
+    full_text = "\n\n".join(all_pages)
+    improved = improve_text_with_claude(full_text, book_id)
+    save_text(book_id, full_text, "claude_vision")
+
+    conn = get_db()
+    conn.execute(
+        "UPDATE books SET has_ocr=1, has_text=1, ocr_improved=? WHERE id=?",
+        (1 if improved != full_text else 0, book_id)
+    )
+    if improved != full_text:
+        conn.execute("UPDATE book_text SET improved=? WHERE book_id=?", (improved, book_id))
+    conn.commit(); conn.close()
+    print(f"  ✅ Done: {book_id} | {len(full_text)} chars | {len(all_pages)} pages")
+    return True
+
 
 def ocr_crawler():
     time.sleep(40)
-    print("🔍 OCR crawler started")
+    print("🔍 OCR crawler (Claude Vision)")
     while True:
         try:
+            if not ANTHROPIC_KEY:
+                time.sleep(300)
+                continue
             conn = get_db()
             rows = conn.execute(
-                "SELECT id FROM books WHERE source='hebrewbooks' AND has_ocr=0 AND valid=1 LIMIT 3"
+                "SELECT id FROM books WHERE source='hebrewbooks' AND has_ocr=0 AND valid=1 LIMIT 2"
             ).fetchall()
             conn.close()
             if not rows:
@@ -1140,10 +831,11 @@ def ocr_crawler():
                 num = row["id"].replace("hb-","")
                 if num.isdigit():
                     run_ocr(row["id"], int(num))
-                time.sleep(5)
+                time.sleep(8)
         except Exception as e:
             print(f"OCR crawler error: {e}")
             time.sleep(60)
+
 
 # ═══════════════════════════════════════════════════
 #  API
@@ -1866,6 +1558,183 @@ def alhatorah_crawler():
         except Exception as e:
             print(f"Al-Hatorah error: {e}")
             time.sleep(120)
+
+
+
+# ===================================================
+#  FEATURES - פיצ'רים מתקדמים
+# ===================================================
+
+@app.route("/api/search-in-book/<path:book_id>")
+def search_in_book(book_id):
+    q = request.args.get("q","").strip()
+    if not q: return jsonify({"results":[]})
+    conn = get_db()
+    tr = conn.execute("SELECT content,improved FROM book_text WHERE book_id=?", (book_id,)).fetchone()
+    conn.close()
+    if not tr: return jsonify({"results":[],"error":"אין טקסט"})
+    text  = tr["improved"] or tr["content"] or ""
+    lines = text.split("\n")
+    results = []
+    for i, line in enumerate(lines):
+        if q in line:
+            ctx_start = max(0, i-1)
+            ctx_end   = min(len(lines), i+2)
+            results.append({"line":i,"text":line,"context":"\n".join(lines[ctx_start:ctx_end])})
+        if len(results) >= 50: break
+    return jsonify({"results":results,"total":len(results),"query":q})
+
+
+@app.route("/api/related/<path:book_id>")
+def related_books(book_id):
+    conn = get_db()
+    book = conn.execute("SELECT subject, author FROM books WHERE id=?", (book_id,)).fetchone()
+    if not book:
+        conn.close()
+        return jsonify({"books":[]})
+    related = conn.execute(
+        "SELECT * FROM books WHERE id!=? AND valid=1 AND "
+        "(subject=? OR author=?) ORDER BY has_text DESC LIMIT 12",
+        (book_id, book["subject"], book["author"])
+    ).fetchall()
+    conn.close()
+    return jsonify({"books":[dict(r) for r in related]})
+
+
+@app.route("/api/toc/<path:book_id>")
+def table_of_contents(book_id):
+    conn = get_db()
+    tr = conn.execute("SELECT content,improved FROM book_text WHERE book_id=?", (book_id,)).fetchone()
+    conn.close()
+    if not tr: return jsonify({"toc":[]})
+    text  = tr["improved"] or tr["content"] or ""
+    toc   = []
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line: continue
+        is_heading = (
+            re.match(r'^(פרק|חלק|ספר|שער|הלכות|סימן|שאלה|תשובה)\s', line) or
+            (len(line) < 50 and not line.endswith('.') and
+             len(re.findall(r'[\u05D0-\u05EA]', line)) > 3)
+        )
+        if is_heading:
+            toc.append({"line":i,"text":line,"level":1})
+        if len(toc) >= 100: break
+    return jsonify({"toc":toc,"total":len(toc)})
+
+
+@app.route("/api/daily")
+def daily_study():
+    import random, datetime
+    conn = get_db()
+    books = conn.execute(
+        "SELECT * FROM books WHERE has_text=1 AND valid=1 ORDER BY RANDOM() LIMIT 5"
+    ).fetchall()
+    conn.close()
+    if not books: return jsonify({"error":"אין ספרים"})
+    book = random.choice(books)
+    conn = get_db()
+    tr = conn.execute("SELECT content,improved FROM book_text WHERE book_id=?", (book["id"],)).fetchone()
+    conn.close()
+    text = ""
+    if tr:
+        full  = tr["improved"] or tr["content"] or ""
+        lines = [l for l in full.split("\n") if len(l.strip()) > 20]
+        if lines:
+            start = random.randint(0, max(0, len(lines)-10))
+            text  = "\n".join(lines[start:start+15])
+    return jsonify({"book":dict(book),"excerpt":text,"date":datetime.date.today().isoformat()})
+
+
+@app.route("/api/fulltext-search")
+def fulltext_search():
+    q     = request.args.get("q","").strip()
+    page  = request.args.get("page",1,type=int)
+    limit = 20
+    if not q or len(q) < 2:
+        return jsonify({"results":[],"total":0})
+    conn  = get_db()
+    rows  = conn.execute(
+        "SELECT b.id,b.title,b.author,b.subject,bt.content,bt.improved "
+        "FROM books b JOIN book_text bt ON b.id=bt.book_id "
+        "WHERE (bt.content LIKE ? OR bt.improved LIKE ?) AND b.valid=1 "
+        "LIMIT ? OFFSET ?",
+        (f"%{q}%",f"%{q}%",limit,(page-1)*limit)
+    ).fetchall()
+    total = conn.execute(
+        "SELECT COUNT(*) FROM books b JOIN book_text bt ON b.id=bt.book_id "
+        "WHERE (bt.content LIKE ? OR bt.improved LIKE ?) AND b.valid=1",
+        (f"%{q}%",f"%{q}%")
+    ).fetchone()[0]
+    conn.close()
+    results = []
+    for row in rows:
+        text    = row["improved"] or row["content"] or ""
+        idx     = text.find(q)
+        if idx >= 0:
+            s       = max(0,idx-100)
+            e       = min(len(text),idx+len(q)+100)
+            excerpt = ("..." if s>0 else "") + text[s:e] + ("..." if e<len(text) else "")
+        else:
+            excerpt = text[:200]
+        results.append({"book_id":row["id"],"title":row["title"],
+                        "author":row["author"],"subject":row["subject"],"excerpt":excerpt})
+    return jsonify({"results":results,"total":total,"page":page,"pages":max(1,(total+limit-1)//limit)})
+
+
+@app.route("/api/ai-explain", methods=["POST"])
+def ai_explain():
+    if not ANTHROPIC_KEY: return jsonify({"error":"נדרש מפתח API"}),400
+    data    = request.get_json() or {}
+    passage = data.get("text","").strip()
+    book    = data.get("book","")
+    if not passage: return jsonify({"error":"חסר טקסט"}),400
+    try:
+        r = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","content-type":"application/json"},
+            json={
+                "model":"claude-haiku-4-5-20251001","max_tokens":1000,
+                "system":"אתה רב ומלומד בתורה. הסבר את הקטע בעברית מודרנית ברורה. כלול פירוש מילים קשות, רקע היסטורי, וחשיבות הלכתית.",
+                "messages":[{"role":"user","content":f"ספר: {book}\n\nקטע:\n{passage[:1000]}"}]
+            },
+            timeout=30
+        )
+        if r.status_code == 200:
+            return jsonify({"explanation":r.json()["content"][0]["text"]})
+    except Exception as e:
+        return jsonify({"error":str(e)}),500
+    return jsonify({"error":"שגיאה"}),500
+
+
+@app.route("/api/ai-translate", methods=["POST"])
+def ai_translate():
+    if not ANTHROPIC_KEY: return jsonify({"error":"נדרש מפתח API"}),400
+    data    = request.get_json() or {}
+    passage = data.get("text","").strip()
+    target  = data.get("target","modern_hebrew")
+    if not passage: return jsonify({"error":"חסר טקסט"}),400
+    prompts = {
+        "modern_hebrew":"תרגם לעברית מודרנית פשוטה:",
+        "english":"Translate to clear modern English:",
+        "yiddish":"איבערזעץ אויף יידיש:",
+    }
+    try:
+        r = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","content-type":"application/json"},
+            json={
+                "model":"claude-haiku-4-5-20251001","max_tokens":1500,
+                "messages":[{"role":"user","content":f"{prompts.get(target,prompts['modern_hebrew'])}\n\n{passage[:1500]}"}]
+            },
+            timeout=30
+        )
+        if r.status_code == 200:
+            return jsonify({"translation":r.json()["content"][0]["text"],"target":target})
+    except Exception as e:
+        return jsonify({"error":str(e)}),500
+    return jsonify({"error":"שגיאה"}),500
 
 
 init_db()
