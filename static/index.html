@@ -626,7 +626,14 @@ async function openBook(id,title,source,preferTab){
 
   if(!info.url && bdata.url) info.url = bdata.url;
 
-  const tab = (preferTab==='text') ? 'text' : 'pdf';
+  // ספרים עם טקסט → פתח תמיד בטקסט קריא
+  // HebrewBooks בלי OCR → PDF
+  let defaultTab = 'pdf';
+  if(hasText) defaultTab = 'text';
+  else if(source !== 'hebrewbooks') defaultTab = 'text'; // ימשוך חי
+  else defaultTab = 'pdf';
+
+  const tab = preferTab || defaultTab;
   switchTab(tab, info, bdata.text, title);
 
   $('vov').classList.add('open');
@@ -715,38 +722,43 @@ function switchTab(tab, info, text, title){
 }
 
 async function fetchAndShowText(bid){
-  // Show loading spinner
   $('vbody').innerHTML=`
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
       height:100%;gap:20px;color:var(--text3)">
       <div class="spin"></div>
       <div id="ocrStatus" style="font-size:15px;font-weight:600">טוען טקסט...</div>
-      <div id="ocrSub" style="font-size:13px">אם זו הפעם הראשונה, ה-OCR עשוי לקחת 2-3 דקות</div>
+      <div id="ocrSub" style="font-size:13px">ממשיך טקסט מהמקור...</div>
       <div id="ocrProgress" style="width:280px;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-        <div id="ocrBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--blue),#60a5fa);border-radius:3px;transition:width .5s ease"></div>
+        <div id="ocrBar" style="height:100%;width:30%;background:linear-gradient(90deg,var(--blue),#60a5fa);border-radius:3px;transition:width .5s ease"></div>
       </div>
     </div>`;
 
   try {
+    // /api/book מושך טקסט חי מהמקור
     const d = await fetch(`/api/book/${encodeURIComponent(bid)}`).then(r=>r.json());
 
-    if(d.text){
-      // יש טקסט — הצג מיד
+    if(d.text && d.text.length > 30){
       renderTextReader(d.text, d.has_improved, bid);
       return;
     }
 
-    // אין טקסט — הפעל OCR אוטומטית אם זה HebrewBooks
+    // HebrewBooks בלי טקסט → OCR עם Claude Vision
     if(bid.startsWith('hb-')){
-      setOcrStatus('🔍 מתחיל OCR...', 'מנתח את הדף ומשפר איכות תמונה', 10);
+      setOcrStatus('🔍 מפעיל Claude Vision...', 'קורא עברית מהסריקה — עשוי לקחת 2-3 דקות', 20);
       await fetch(`/api/ocr/${encodeURIComponent(bid)}`, {method:'POST'});
-      // Poll עד שיש תוצאה
       await pollForText(bid);
     } else {
-      renderTextReader('', false, bid);
+      // מקור אחר בלי טקסט
+      $('vbody').innerHTML=`
+        <div style="padding:60px;text-align:center">
+          <div style="font-size:48px;margin-bottom:16px">📭</div>
+          <div style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--text)">לא נמצא טקסט</div>
+          <div style="font-size:13px;color:var(--text3);margin-bottom:20px">הספר לא זמין לקריאה בתוך האתר</div>
+          <button onclick="switchTab('pdf')" style="padding:8px 20px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue-lt);color:var(--blue);cursor:pointer;font-family:inherit;font-size:14px">📄 פתח PDF</button>
+        </div>`;
     }
   } catch(e) {
-    $('vbody').innerHTML=`<div style="padding:40px;text-align:center;color:var(--red)">שגיאה בטעינת טקסט</div>`;
+    $('vbody').innerHTML=`<div style="padding:40px;text-align:center;color:var(--red)">שגיאה: ${e.message}</div>`;
   }
 }
 
