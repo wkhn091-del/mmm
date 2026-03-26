@@ -1103,13 +1103,18 @@ function splitToPages(text, title){
 }
 
 async function fetchAndShowFlip(bid){
-  $('vbody').innerHTML='<div class="loader" style="height:100%"><div class="spin"></div><div>טוען ספר...</div></div>';
+  $('vbody').innerHTML='<div class="loader" style="height:100%"><div class="spin"></div><div style="font-size:14px">טוען ספר לדפדוף...</div></div>';
 
   try{
     const d = await fetch(`/api/book/${encodeURIComponent(bid)}`).then(r=>r.json());
-    if(!d.text){
-      // אין טקסט — הפעל OCR אוטומטית
-      fetchAndShowText(bid);
+    if(!d.text || d.text.length < 30){
+      if(bid.startsWith('hb-')){
+        // הפעל OCR ואז חזור
+        await fetch(`/api/ocr/${encodeURIComponent(bid)}`, {method:'POST'});
+        $('vbody').innerHTML='<div style="padding:60px;text-align:center"><div style="font-size:36px;margin-bottom:16px">⏳</div><div style="font-size:15px;font-weight:600">OCR מתחיל...</div><div style="font-size:13px;color:var(--text3);margin-top:8px">ה-OCR יארך 2-3 דקות, אחר כך נסה שוב</div><br><button onclick="fetchAndShowFlip(\'' + bid + '\')" style="padding:8px 20px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue-lt);color:var(--blue);cursor:pointer;font-family:inherit">🔄 נסה שוב</button></div>';
+      } else {
+        fetchAndShowText(bid);
+      }
       return;
     }
 
@@ -1119,7 +1124,7 @@ async function fetchAndShowFlip(bid){
     renderFlipPage(0, null);
 
   } catch(e){
-    $('vbody').innerHTML='<div style="padding:40px;text-align:center;color:var(--red)">שגיאה בטעינת ספר</div>';
+    $('vbody').innerHTML='<div style="padding:40px;text-align:center;color:var(--red)">שגיאה בטעינת ספר: '+e.message+'</div>';
   }
 }
 
@@ -1343,30 +1348,32 @@ async function showRelated(bid){
 }
 
 // ══ AI PANEL — פרש, תרגם, הסבר ══════════════════════
-function showAIPanel(bid, title){
+async function showAIPanel(bid, title){
   $('vbody').innerHTML=`
     <div class="feat-panel">
       <div class="feat-tabs">
-        <button class="ft on" id="ft-explain" onclick="setFeatTab('explain')">🧠 פירוש</button>
-        <button class="ft" id="ft-modern"  onclick="setFeatTab('modern')">📝 עברית מודרנית</button>
-        <button class="ft" id="ft-english" onclick="setFeatTab('english')">🌍 תרגום אנגלית</button>
-        <button class="ft" id="ft-fts"     onclick="setFeatTab('fts')">🔍 חיפוש בכל הספרים</button>
+        <button class="ft on" id="ft-explain" onclick="setFeatTab('explain','${bid}','${esc(title).replace(/'/g,"\'")}')">🧠 פירוש</button>
+        <button class="ft" id="ft-modern"  onclick="setFeatTab('modern','${bid}','${esc(title).replace(/'/g,"\'")}')">📝 עברית מודרנית</button>
+        <button class="ft" id="ft-english" onclick="setFeatTab('english','${bid}','${esc(title).replace(/'/g,"\'")}')">🌍 אנגלית</button>
+        <button class="ft" id="ft-fts"     onclick="setFeatTab('fts','${bid}','${esc(title).replace(/'/g,"\'")}')">🔍 חיפוש בכל הספרים</button>
       </div>
       <div class="feat-body" id="featBody">
-        <div style="margin-bottom:12px;font-size:13px;color:var(--text3)">
-          הדבק קטע טקסט מהספר וקבל פירוש מ-Claude AI:
+        <div style="margin-bottom:10px;font-size:13px;color:var(--text3)">
+          📌 בחר טקסט מהספר (גרור עם העכבר/אצבע) ואז לחץ "📋 הוסף בחירה"
         </div>
         <textarea class="ai-textarea" id="aiPassage" placeholder="הדבק כאן קטע מהספר לפירוש..." dir="rtl"></textarea>
         <div class="ai-btn-row">
           <button class="ai-btn primary" onclick="runAI('explain','${bid}','${esc(title).replace(/'/g,"\'")}')">🧠 פרש לי</button>
-          <button class="ai-btn" onclick="pasteFromBook()">📋 הדבק מהטקסט</button>
+          <button class="ai-btn" onclick="pasteFromBook()" style="background:var(--green-lt);border-color:#a7f3d0;color:var(--green)">📋 הוסף בחירה</button>
         </div>
         <div id="aiResult" class="ai-result" style="display:none"></div>
       </div>
     </div>`;
 }
 
-function setFeatTab(tab){
+function setFeatTab(tab, bid, title){
+  bid   = bid   || S.bid;
+  title = title || S.btitle;
   document.querySelectorAll('.ft').forEach(b=>b.classList.remove('on'));
   $('ft-'+tab) && $('ft-'+tab).classList.add('on');
 
@@ -1392,38 +1399,53 @@ function setFeatTab(tab){
     <div style="margin-bottom:12px;font-size:13px;color:var(--text3)">${l.title}:</div>
     <textarea class="ai-textarea" id="aiPassage" placeholder="${l.ph}" dir="rtl"></textarea>
     <div class="ai-btn-row">
-      <button class="ai-btn primary" onclick="runAI('${tab}','${S.bid}','${esc(S.btitle).replace(/'/g,"\'")}')">✨ ${l.btn}</button>
+      <button class="ai-btn primary" onclick="runAI('${tab}',bid||S.bid,title||S.btitle)">✨ ${l.btn}</button>
+      <button class="ai-btn" onclick="pasteFromBook()" style="background:var(--green-lt);border-color:#a7f3d0;color:var(--green)">📋 הוסף בחירה</button>
     </div>
     <div id="aiResult" class="ai-result" style="display:none"></div>`;
 }
 
 async function runAI(action, bid, title){
   const passage = $('aiPassage') ? $('aiPassage').value.trim() : '';
-  if(!passage){alert('הדבק קטע טקסט קודם');return;}
+  if(!passage){
+    alert('הדבק קטע טקסט מהספר קודם');
+    return;
+  }
   const res = $('aiResult');
   res.style.display='block';
-  res.textContent='⏳ Claude חושב...';
+  res.innerHTML='<div style="display:flex;align-items:center;gap:10px"><div class="spin" style="width:20px;height:20px;border-width:2px"></div>Claude חושב...</div>';
 
   try{
     let endpoint, body;
     if(action==='explain'){
       endpoint='/api/ai-explain';
-      body={text:passage,book:title};
+      body={text:passage, book:title};
     } else {
       endpoint='/api/ai-translate';
-      const targetMap={modern:'modern_hebrew',english:'english'};
-      body={text:passage,target:targetMap[action]||'modern_hebrew'};
+      const targetMap={modern:'modern_hebrew', english:'english'};
+      body={text:passage, target:targetMap[action]||'modern_hebrew'};
     }
 
-    const r = await fetch(endpoint,{
+    const resp = await fetch(endpoint, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    }).then(r=>r.json());
+      body: JSON.stringify(body)
+    });
 
-    res.textContent = r.explanation || r.translation || r.error || 'שגיאה';
+    if(!resp.ok){
+      const txt = await resp.text();
+      res.textContent = 'שגיאת שרת: ' + resp.status + ' — ' + txt.slice(0,100);
+      return;
+    }
+
+    const d = await resp.json();
+    if(d.error){
+      res.textContent = 'שגיאה: ' + d.error;
+      return;
+    }
+    res.textContent = d.explanation || d.translation || 'לא התקבלה תשובה';
   }catch(e){
-    res.textContent='שגיאה: '+e.message;
+    res.textContent = 'שגיאת רשת: ' + e.message;
   }
 }
 
@@ -1451,13 +1473,27 @@ async function doFTS(){
 }
 
 function pasteFromBook(){
-  // Copy text from reader if open
+  const ta = $('aiPassage');
+  if(!ta) return;
+  // First try selected text from anywhere on page
+  const sel = window.getSelection ? window.getSelection().toString().trim() : '';
+  if(sel && sel.length > 5){
+    ta.value = sel;
+    ta.focus();
+    return;
+  }
+  // Then try treader content (first 400 chars)
   const el = $('treader-content');
-  const sel = window.getSelection ? window.getSelection().toString() : '';
-  if(sel && $('aiPassage')){
-    $('aiPassage').value = sel;
-  } else if(el && $('aiPassage')){
-    $('aiPassage').value = el.innerText.slice(0,500);
+  if(el){
+    ta.value = el.innerText.slice(0, 400).trim();
+    ta.focus();
+    return;
+  }
+  // Then flip content
+  const fc = $('flipContent');
+  if(fc){
+    ta.value = fc.innerText.slice(0, 400).trim();
+    ta.focus();
   }
 }
 
