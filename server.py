@@ -1673,11 +1673,21 @@ def alhatorah_crawler():
 def search_in_book(book_id):
     q = request.args.get("q","").strip()
     if not q: return jsonify({"results":[]})
+    # Try DB
     conn = get_db()
-    tr = conn.execute("SELECT content,improved FROM book_text WHERE book_id=?", (book_id,)).fetchone()
+    tr   = conn.execute("SELECT content,improved FROM book_text WHERE book_id=?", (book_id,)).fetchone()
+    book = conn.execute("SELECT * FROM books WHERE id=?", (book_id,)).fetchone()
     conn.close()
-    if not tr: return jsonify({"results":[],"error":"אין טקסט"})
-    text  = tr["improved"] or tr["content"] or ""
+    text = (tr["improved"] or tr["content"]) if tr else ""
+    # Fetch live if not in DB
+    if not text and book:
+        if book_id.startswith("sef-"):
+            text = fetch_sefaria_text_live(book_id) or ""
+        elif book_id.startswith("ws-"):
+            text = fetch_wikisource_text_live(book["title"]) or ""
+        elif book and book["url"]:
+            text = fetch_url_text_live(book["url"]) or ""
+    if not text: return jsonify({"results":[],"error":"אין טקסט לספר זה"})
     lines = text.split("\n")
     results = []
     for i, line in enumerate(lines):
@@ -1707,11 +1717,21 @@ def related_books(book_id):
 
 @app.route("/api/toc/<path:book_id>")
 def table_of_contents(book_id):
+    # Try DB first
     conn = get_db()
     tr = conn.execute("SELECT content,improved FROM book_text WHERE book_id=?", (book_id,)).fetchone()
+    book = conn.execute("SELECT * FROM books WHERE id=?", (book_id,)).fetchone()
     conn.close()
-    if not tr: return jsonify({"toc":[]})
-    text  = tr["improved"] or tr["content"] or ""
+    text = (tr["improved"] or tr["content"]) if tr else ""
+    # If no text in DB, fetch live
+    if not text and book:
+        if book_id.startswith("sef-"):
+            text = fetch_sefaria_text_live(book_id) or ""
+        elif book_id.startswith("ws-"):
+            text = fetch_wikisource_text_live(book["title"]) or ""
+        elif book and book["url"]:
+            text = fetch_url_text_live(book["url"]) or ""
+    if not text: return jsonify({"toc":[]})
     toc   = []
     lines = text.split("\n")
     for i, line in enumerate(lines):
@@ -1795,7 +1815,7 @@ def ai_explain():
     book    = data.get("book","")
     if not passage: return jsonify({"error":"חסר טקסט"}),400
     try:
-        r = requests.post(
+        resp = requests.post(
             "https://api.anthropic.com/v1/messages",
             headers={"x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","content-type":"application/json"},
             json={
@@ -1803,13 +1823,18 @@ def ai_explain():
                 "system":"אתה רב ומלומד בתורה. הסבר את הקטע בעברית מודרנית ברורה. כלול פירוש מילים קשות, רקע היסטורי, וחשיבות הלכתית.",
                 "messages":[{"role":"user","content":f"ספר: {book}\n\nקטע:\n{passage[:1000]}"}]
             },
-            timeout=30
+            timeout=45
         )
-        if r.status_code == 200:
-            return jsonify({"explanation":r.json()["content"][0]["text"]})
+        data = resp.json()
+        if resp.status_code == 200 and data.get("content"):
+            return jsonify({"explanation": data["content"][0]["text"]})
+        else:
+            err = data.get("error",{}).get("message","שגיאה בשרת")
+            return jsonify({"error": err}), 500
+    except requests.exceptions.Timeout:
+        return jsonify({"error":"פסק זמן — נסה שוב"}),504
     except Exception as e:
         return jsonify({"error":str(e)}),500
-    return jsonify({"error":"שגיאה"}),500
 
 
 @app.route("/api/ai-translate", methods=["POST"])
@@ -1868,20 +1893,24 @@ def admin_cleanup():
 
 init_db()
 
+# ספרים דתיים בלבד — מקורות חרדיים/תורניים
+RELIGIOUS_SUBJECTS = {
+    'הלכה','מוסר','חסידות','פרשנות','קבלה','שו"ת','מחשבה',
+    'פילוסופיה','תנ"ך','אגדה','מועדים','שבת','תלמוד','משנה',
+    'מדרש','תפילה','תוספתא','מצוות','חסידות','ספרות קודש',
+}
+
 crawlers = [
-    hebrewbooks_crawler,
-    sefaria_crawler,
-    ben_yehuda_crawler,
-    mamre_crawler,
-    wikisource_crawler,
-    daat_crawler,
-    chabad_crawler,
-    nli_crawler,
-    internet_archive_crawler,
-    opensiddur_crawler,
-    alhatorah_crawler,
+    hebrewbooks_crawler,   # ספרים עתיקים — כולל דתיים
+    sefaria_crawler,       # טקסטים קלאסיים
+    mamre_crawler,         # תנ"ך + רמב"ם
+    daat_crawler,          # תורניים
+    chabad_crawler,        # חסידות
+    opensiddur_crawler,    # תפילה
+    alhatorah_crawler,     # תנ"ך + פירושים
     ocr_crawler,
     claude_improver,
+    # הוסרו: ben_yehuda (ספרות חילונית), wikisource (מעורב), nli, internet_archive
 ]
 for fn in crawlers:
     threading.Thread(target=fn, daemon=True).start()
