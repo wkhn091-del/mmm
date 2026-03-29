@@ -874,8 +874,22 @@ async function fetchAndShowText(bid){
 
     // HebrewBooks בלי טקסט → OCR עם Claude Vision
     if(bid.startsWith('hb-')){
-      setOcrStatus('🔍 מפעיל Claude Vision...', 'קורא עברית מהסריקה — עשוי לקחת 2-3 דקות', 20);
-      await fetch(`/api/ocr/${encodeURIComponent(bid)}`, {method:'POST'});
+      // בדוק אם יש ANTHROPIC_API_KEY
+      setOcrStatus('🔍 מפעיל OCR...', 'שולח לClaude Vision לקריאת עברית מהסריקה', 15);
+      try{
+        const ocrResp = await fetch(`/api/ocr/${encodeURIComponent(bid)}`, {method:'POST'}).then(r=>r.json());
+        if(ocrResp.status === 'already_done'){
+          // כבר נסו, אין טקסט זמין
+          $('vbody').innerHTML=`
+            <div style="padding:60px;text-align:center">
+              <div style="font-size:48px;margin-bottom:16px">📄</div>
+              <div style="font-size:16px;font-weight:600;margin-bottom:8px">ספר זה זמין כ-PDF בלבד</div>
+              <div style="font-size:13px;color:var(--text3);margin-bottom:20px">לא ניתן לחלץ טקסט מספר זה</div>
+              <button onclick="switchTab('pdf')" style="padding:10px 24px;border-radius:8px;border:none;background:var(--blue);color:#fff;cursor:pointer;font-family:inherit;font-size:14px">📄 פתח PDF</button>
+            </div>`;
+          return;
+        }
+      }catch(e){}
       await pollForText(bid);
     } else {
       // מקור אחר בלי טקסט
@@ -1003,7 +1017,6 @@ function closeV(){
 }
 
 async function exportPDF(bid){
-  // Show loading on button
   const btn = event && event.target;
   const orig = btn ? btn.textContent : '';
   if(btn){ btn.textContent='⏳ מייצר PDF...'; btn.disabled=true; }
@@ -1011,22 +1024,29 @@ async function exportPDF(bid){
   try{
     const resp = await fetch(`/api/export-pdf/${encodeURIComponent(bid)}`);
     if(!resp.ok){
-      const err = await resp.json().catch(()=>({error:'שגיאה'}));
-      alert('שגיאה: ' + (err.error||'לא ניתן ליצור PDF'));
+      // Fallback: print the text reader
+      if(btn){ btn.textContent=orig||'📥 הורד PDF'; btn.disabled=false; }
+      window.print();
       return;
     }
-    // Download the PDF
     const blob = await resp.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = (S.btitle||'book') + '.pdf';
+    if(blob.size < 100){
+      window.print();
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href    = url;
+    a.download= (S.btitle||'book').replace(/[^א-תa-zA-Z0-9]/g,'_') + '.pdf';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
   } catch(e){
-    alert('שגיאה ביצירת PDF: ' + e.message);
+    // Always fallback to print
+    window.print();
   } finally {
-    if(btn){ btn.textContent=orig||'📥 הורד PDF מעוצב'; btn.disabled=false; }
+    if(btn){ btn.textContent=orig||'📥 הורד PDF'; btn.disabled=false; }
   }
 }
 
