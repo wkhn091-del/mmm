@@ -43,12 +43,48 @@ def get_db():
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
-# Volume check
-import os as _os
-if not _os.path.exists("/data"): print("WARNING: no /data volume")
-else: print(f"Volume OK: {DB_PATH}")
+def init_db():
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS books (
+            id          TEXT PRIMARY KEY,
+            source      TEXT DEFAULT 'hebrewbooks',
+            title       TEXT NOT NULL DEFAULT '',
+            he_title    TEXT DEFAULT '',
+            author      TEXT DEFAULT '',
+            year        TEXT DEFAULT '',
+            subject     TEXT DEFAULT '',
+            language    TEXT DEFAULT 'he',
+            has_text    INTEGER DEFAULT 0,
+            has_ocr     INTEGER DEFAULT 0,
+            ocr_improved INTEGER DEFAULT 0,
+            valid       INTEGER DEFAULT 1,
+            url         TEXT DEFAULT ''
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS book_text (
+            book_id  TEXT PRIMARY KEY,
+            content  TEXT,
+            improved TEXT,
+            source   TEXT DEFAULT 'ocr'
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_title   ON books(title)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_subject ON books(subject)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_source  ON books(source)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_has_text ON books(has_text)")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS state (
+            key TEXT PRIMARY KEY, value TEXT
+        )
+    """)
+    conn.execute("PRAGMA auto_vacuum=INCREMENTAL")
+    conn.commit()
+    _seed(conn)
+    conn.close()
+    print("✅ DB ready")
 
-init_db()
 def _seed(conn):
     seed = [
         ("hb-9780",  "hebrewbooks","שולחן ערוך - אורח חיים",  "","ר' יוסף קארו",           "1565","הלכה",   "he",""),
