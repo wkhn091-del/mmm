@@ -43,51 +43,12 @@ def get_db():
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
-def init_db():
-    conn = get_db()
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS books (
-            id          TEXT PRIMARY KEY,
-            source      TEXT DEFAULT 'hebrewbooks',
-            title       TEXT NOT NULL DEFAULT '',
-            he_title    TEXT DEFAULT '',
-            author      TEXT DEFAULT '',
-            year        TEXT DEFAULT '',
-            subject     TEXT DEFAULT '',
-            language    TEXT DEFAULT 'he',
-            has_text    INTEGER DEFAULT 0,
-            has_ocr     INTEGER DEFAULT 0,
-            ocr_improved INTEGER DEFAULT 0,
-            valid       INTEGER DEFAULT 1,
-            url         TEXT DEFAULT ''
-        )
-    """)
-    # book_text מוגבל — שומר רק 5000 תווים ראשונים לחיסכון במקום
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS book_text (
-            book_id  TEXT PRIMARY KEY,
-            content  TEXT,
-            improved TEXT,
-            source   TEXT DEFAULT 'ocr'
-        )
-    """)
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_title   ON books(title)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_subject ON books(subject)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_source  ON books(source)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_has_text ON books(has_text)")
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS state (
-            key TEXT PRIMARY KEY, value TEXT
-        )
-    """)
-    # אופטימיזציה למקום
-    conn.execute("PRAGMA page_size=4096")
-    conn.execute("PRAGMA auto_vacuum=INCREMENTAL")
-    conn.commit()
-    _seed(conn)
-    conn.close()
-    print("✅ DB ready")
+# Volume check
+import os as _os
+if not _os.path.exists("/data"): print("WARNING: no /data volume")
+else: print(f"Volume OK: {DB_PATH}")
 
+init_db()
 def _seed(conn):
     seed = [
         ("hb-9780",  "hebrewbooks","שולחן ערוך - אורח חיים",  "","ר' יוסף קארו",           "1565","הלכה",   "he",""),
@@ -769,11 +730,13 @@ def run_ocr(book_id, numeric_id):
     print(f"🔍 Claude Vision OCR: {book_id}")
     all_pages = []
 
-    for page_num in range(1, 21):
+    for page_num in range(1, 11):  # מגביל ל-10 עמודים ראשונים
         img_url = f"https://hebrewbooks.org/pagefinder.aspx?req={numeric_id}&pgnum={page_num}&zoom=0"
         try:
-            r = requests.get(img_url, headers=HB_HEADERS, timeout=20)
+            r = requests.get(img_url, headers=HB_HEADERS, timeout=15)
             if r.status_code != 200:
+                if page_num == 1:
+                    print(f"  ❌ Image not accessible for {book_id}")
                 break
             ct = r.headers.get("Content-Type", "")
             if "image" not in ct:
@@ -884,12 +847,13 @@ def stats():
 
 @app.route("/api/featured")
 def featured():
-    ids = ("'hb-9780','hb-14763','hb-3281','hb-22879','hb-43081','hb-8774',"
-           "'hb-4902','hb-14490','hb-11234','hb-2865','hb-5432','hb-6789',"
-           "'hb-3456','hb-9012','hb-5678','hb-3210','hb-1111','hb-4444',"
-           "'hb-6666','hb-2468'")
+    # ספרים מומלצים — ברור שהם קיימים ב-HebrewBooks
     conn = get_db()
-    rows = conn.execute(f"SELECT * FROM books WHERE id IN ({ids}) AND valid=1").fetchall()
+    # קח 20 ספרים מה-seed שיש להם כותרת
+    rows = conn.execute(
+        "SELECT * FROM books WHERE valid=1 AND title!='' "
+        "ORDER BY id LIMIT 20"
+    ).fetchall()
     conn.close()
     return jsonify({"books": [dict(r) for r in rows]})
 
@@ -1809,7 +1773,8 @@ def fulltext_search():
 
 @app.route("/api/ai-explain", methods=["POST"])
 def ai_explain():
-    if not ANTHROPIC_KEY: return jsonify({"error":"נדרש מפתח API"}),400
+    if not ANTHROPIC_KEY:
+        return jsonify({"error":"חסר ANTHROPIC_API_KEY ב-Variables של Railway"}),400
     data    = request.get_json() or {}
     passage = data.get("text","").strip()
     book    = data.get("book","")
@@ -1889,6 +1854,70 @@ def admin_cleanup():
     import os
     size = round(os.path.getsize(DB_PATH)/1024/1024, 1) if os.path.exists(DB_PATH) else 0
     return jsonify({"status":"ok","db_size_mb":size})
+
+
+@app.route("/api/export-books")
+def export_books():
+    """מייצא את כל הספרים כ-JSON להורדה — גיבוי מלא."""
+    conn = get_db()
+    books = conn.execute("SELECT * FROM books WHERE valid=1").fetchall()
+    conn.close()
+    data = [dict(b) for b in books]
+
+    import json
+    from flask import Response
+    output = json.dumps(data, ensure_ascii=False, indent=2)
+
+    return Response(
+        output,
+        mimetype="application/json",
+        headers={
+            "Content-Disposition": "attachment; filename=ganzach_books_backup.json",
+            "Content-Length": len(output.encode('utf-8'))
+        }
+    )
+
+
+@app.route("/api/import-books", methods=["POST"])
+def import_books():
+    """מייבא ספרים מ-JSON — שחזור מגיבוי."""
+    try:
+        data = request.get_json()
+        if not data or not isinstance(data, list):
+            return jsonify({"error":"נתונים לא תקינים"}), 400
+
+        conn = get_db()
+        imported = 0
+        skipped  = 0
+        for book in data:
+            try:
+                conn.execute(
+                    "INSERT OR IGNORE INTO books(id,source,title,he_title,author,year,subject,language,has_text,has_ocr,ocr_improved,valid,url) "
+                    "VALUES(:id,:source,:title,:he_title,:author,:year,:subject,:language,:has_text,:has_ocr,:ocr_improved,:valid,:url)",
+                    {
+                        "id":          book.get("id",""),
+                        "source":      book.get("source","hebrewbooks"),
+                        "title":       book.get("title",""),
+                        "he_title":    book.get("he_title",""),
+                        "author":      book.get("author",""),
+                        "year":        book.get("year",""),
+                        "subject":     book.get("subject",""),
+                        "language":    book.get("language","he"),
+                        "has_text":    book.get("has_text",0),
+                        "has_ocr":     book.get("has_ocr",0),
+                        "ocr_improved":book.get("ocr_improved",0),
+                        "valid":       book.get("valid",1),
+                        "url":         book.get("url",""),
+                    }
+                )
+                imported += 1
+            except:
+                skipped += 1
+        conn.commit()
+        conn.close()
+        return jsonify({"status":"ok","imported":imported,"skipped":skipped,"total":len(data)})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
 
 
 init_db()
