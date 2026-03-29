@@ -1,47 +1,72 @@
-# 📚 אוצר הספרים — ספרייה יהודית דיגיטלית
-
-## פריסה ב-Railway (חינמי)
-
-### שלב 1 — GitHub
-1. צור חשבון GitHub: https://github.com
-2. צור repository חדש בשם `otzar-hasefarim`
-3. העלה את כל הקבצים
-
-```bash
-git init
-git add .
-git commit -m "first commit"
-git remote add origin https://github.com/YOUR_USERNAME/otzar-hasefarim.git
-git push -u origin main
-```
-
-### שלב 2 — Railway
-1. כנס ל: https://railway.app
-2. לחץ "Start a New Project"
-3. בחר "Deploy from GitHub repo"
-4. בחר את ה-repo שיצרת
-5. Railway מזהה Flask אוטומטית ✅
-6. לחץ "Deploy" — האתר עולה תוך ~2 דקות!
-
-### שלב 3 — קבל קישור
-Railway יתן לך URL כמו: `https://otzar-hasefarim.up.railway.app`
+[README (1).md](https://github.com/user-attachments/files/26328753/README.1.md)
+# 📚 גנזך — ספרייה יהודית דיגיטלית
+## הוראות התקנה על דיסק (שימוש אופליין)
 
 ---
 
-## הרצה מקומית
+## 🖥️ דרישות מערכת
+- Windows 10/11 (או Mac/Linux)
+- Python 3.10+ מותקן
+- דיסק עם 500GB פנוי
 
-```bash
-pip install -r requirements.txt
-python server.py
-# פתח http://localhost:5000
+## 📦 התקנה חד-פעמית
+
+1. **העתק את כל התיקייה לדיסק שלך**
+   ```
+   E:\גנזך\
+   ```
+
+2. **התקן Python** (אם לא מותקן):
+   https://python.org/downloads → סמן "Add to PATH"
+
+3. **הפעל פעם ראשונה עם אינטרנט:**
+   לחץ פעמיים על `הפעל_גנזך.bat`
+   → יתקין תלויות אוטומטית
+   → יפתח דפדפן עם הספרייה
+
+---
+
+## 🚀 שימוש יומיומי
+לחץ פעמיים על `הפעל_גנזך.bat` — זה הכל!
+
+---
+
+## 💾 הורדת ספרים לשימוש אופליין מלא
+
+### אפשרות 1 — ספר בודד:
+פתח ספר ← לחץ **"💾 שמור לדיסק"**
+
+### אפשרות 2 — הכל בבת אחת:
+בסרגל הצד ← **"💾 ניהול הורדות"** ← **"הורד הכל"**
+⚠️ דורש ~300GB + אינטרנט + כמה ימים
+
+---
+
+## 📂 מבנה הקבצים
+```
+גנזך/
+├── הפעל_גנזך.bat    ← הפעלה (Windows)
+├── הפעל_גנזך.sh     ← הפעלה (Mac/Linux)
+├── server.py          ← השרת
+├── static/            ← הממשק
+├── books.db           ← כל הספרים (נבנה אוטומטית)
+├── pdfs/              ← PDFs שהורדת (נוצר אוטומטית)
+└── requirements.txt   ← תלויות Python
 ```
 
-## מבנה הקבצים
-```
-├── server.py          # Flask backend + proxy
-├── static/
-│   └── index.html     # הממשק הגרפי
-├── requirements.txt   # תלויות Python
-├── Procfile           # הוראות הרצה ל-Railway
-└── runtime.txt        # גרסת Python
-```
+---
+
+## ❓ שאלות נפוצות
+
+**ש: האתר לא נפתח?**
+ת: פתח דפדפן ידנית ב: http://localhost:5000
+
+**ש: הספרים לא מופיעים?**
+ת: הסורק עובד ברקע — חכה 10 דקות והרענן
+
+**ש: רוצה לעדכן?**
+ת: פשוט החלף את server.py ו-static/index.html
+
+---
+
+*גנזך — ספרייה יהודית דיגיטלית | עבודה עצמאית ולא למסחר*
