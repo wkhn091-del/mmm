@@ -1592,6 +1592,50 @@ async function goDaily(){
   }
 }
 
+
+// ══ MISSING FUNCTIONS ═══════════════════════════════
+function buildDots(cur, total){
+  const n = Math.min(total, 9);
+  let html = '';
+  for(let i=0; i<n; i++){
+    const dotIdx = Math.floor(i * total / n);
+    const active = Math.abs(dotIdx - cur) < (total/n) ? 'active' : '';
+    html += '<div class="flip-dot ' + active + '" onclick="flipGoTo(' + dotIdx + ')"></div>';
+  }
+  return html;
+}
+
+async function goOffline(){
+  S.mode='offline'; setNav('nb-offline');
+  try{
+    const d = await fetch('/api/offline-stats').then(r=>r.json());
+    $('main').innerHTML=`
+      <div class="pgh">
+        <div class="pgt">💾 ניהול הורדות</div>
+        <div class="pgs">ספרים שהורדו זמינים בלי אינטרנט</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
+          <div style="font-size:32px;font-weight:900;color:var(--blue)">${(d.downloaded||0).toLocaleString()}</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">ספרים שהורדו</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
+          <div style="font-size:32px;font-weight:900;color:var(--green)">${d.total_size_gb||0}</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">GB בשימוש</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
+          <div style="font-size:32px;font-weight:900;color:var(--amber)">500</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">GB זמין</div>
+        </div>
+      </div>
+      <div style="background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:10px;padding:16px;font-size:13px;color:var(--blue)">
+        💡 פתח ספר ← לחץ "💾 שמור לדיסק" ← הספר יהיה זמין בלי אינטרנט
+      </div>`;
+  }catch(e){
+    $('main').innerHTML='<div style="padding:40px;text-align:center;color:var(--red)">שגיאה</div>';
+  }
+}
+
 // ══ BOOT ════════════════════════════════════════════
 refreshStats();
 setInterval(refreshStats,6000);
