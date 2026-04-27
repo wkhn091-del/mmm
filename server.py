@@ -33,22 +33,25 @@ def get_db():
     if _db_instance is None:
         if not MONGO_URI:
             raise RuntimeError("חסר MONGO_URI!")
-        _client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        _client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=30000, connectTimeoutMS=30000)
         _db_instance = _client["ganzach"]
     return _db_instance
 
 def init_db():
-    db = get_db()
-    books = db["books"]
-    books.create_index("id", unique=True)
-    books.create_index("title")
-    books.create_index("subject")
-    books.create_index("source")
-    books.create_index("has_text")
-    db["book_text"].create_index("book_id", unique=True)
-    db["state"].create_index("key", unique=True)
-    _seed(db)
-    print("MongoDB ready")
+    try:
+        db = get_db()
+        books = db["books"]
+        books.create_index("id", unique=True)
+        books.create_index("title")
+        books.create_index("subject")
+        books.create_index("source")
+        books.create_index("has_text")
+        db["book_text"].create_index("book_id", unique=True)
+        db["state"].create_index("key", unique=True)
+        _seed(db)
+        print("MongoDB ready")
+    except Exception as e:
+        print(f"MongoDB init warning: {e}")
 
 VERIFIED_SEED = [
     ("hb-14763","hebrewbooks","משנה תורה","","הרמב\'ם","1180","הלכה","he",""),
