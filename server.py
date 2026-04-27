@@ -18,7 +18,7 @@ import requests
 from bs4 import BeautifulSoup
 import threading, re, os, time, json
 from pymongo.errors import DuplicateKeyError
-import db_mongo
+from .db_mongo import *
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
